@@ -73,11 +73,12 @@ function currentStreak(sessions) {
   const days = new Set(sessions.map((s) => dayKey(s.date)))
   let streak = 0
   const cursor = new Date()
-  // Allow the streak to "start" today or yesterday.
-  if (!days.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1)
+  // Step in UTC to match dayKey's UTC basis (mixing local getDate here would
+  // drift a day near midnight and break/extend the streak by one).
+  if (!days.has(dayKey(cursor))) cursor.setUTCDate(cursor.getUTCDate() - 1)
   while (days.has(dayKey(cursor))) {
     streak++
-    cursor.setDate(cursor.getDate() - 1)
+    cursor.setUTCDate(cursor.getUTCDate() - 1)
   }
   return streak
 }
@@ -87,15 +88,17 @@ function monthlyActivity(sessions, now) {
   const buckets = []
   const index = {}
   for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = `${d.getFullYear()}-${d.getMonth()}`
-    const bucket = { key, year: d.getFullYear(), month: d.getMonth(), pages: 0 }
+    // UTC month buckets to line up with the UTC-based session day keys.
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))
+    const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}`
+    const bucket = { key, year: d.getUTCFullYear(), month: d.getUTCMonth(), pages: 0 }
     index[key] = bucket
     buckets.push(bucket)
   }
   for (const s of sessions) {
     const d = new Date(s.date)
-    const key = `${d.getFullYear()}-${d.getMonth()}`
+    if (Number.isNaN(d.getTime())) continue
+    const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}`
     if (index[key]) index[key].pages += s.pagesRead || 0
   }
   return buckets

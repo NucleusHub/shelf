@@ -56,9 +56,12 @@ router.post('/books/:id/sessions', async (req, res) => {
     let pagesRead = req.body?.pagesRead != null && req.body.pagesRead !== '' ? Number(req.body.pagesRead) : null
 
     if (endingPage == null && pagesRead != null) endingPage = prevPage + pagesRead
-    if (pagesRead == null) pagesRead = Math.max(0, (endingPage ?? prevPage) - prevPage)
     if (endingPage == null) endingPage = prevPage
+    // Clamp to the real length BEFORE deriving pagesRead, so logging past the last
+    // page can't inflate the stored pages-read (and every stat built on it).
     if (pageCount) endingPage = Math.min(endingPage, pageCount)
+    if (pagesRead == null) pagesRead = Math.max(0, endingPage - prevPage)
+    else pagesRead = Math.max(0, Math.min(pagesRead, endingPage - prevPage))
 
     const session = await ReadingSession.create({
       profileId: req.profile.profileId,
@@ -97,6 +100,13 @@ router.delete('/sessions/:sid', async (req, res) => {
     if (item) {
       const remaining = await ReadingSession.find({ item: item._id }).sort({ endingPage: -1 }).limit(1).lean()
       item.currentPage = remaining[0]?.endingPage || 0
+      // If rewinding drops us below the last page, the book is no longer finished
+      // (only when we actually know the length — don't un-finish manually-set books).
+      const pageCount = item.book?.pageCount || 0
+      if (item.status === 'finished' && pageCount && item.currentPage < pageCount) {
+        item.status = item.currentPage > 0 ? 'reading' : 'planned'
+        item.finishedReading = null
+      }
       await item.save()
       return res.json({ ok: true, entry: toEntry(item) })
     }

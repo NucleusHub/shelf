@@ -1,6 +1,6 @@
 <script setup>
-// Configurable star rating on a 0.5..max scale (max = the user's ratingMax, 5 or
-// 10). Supports half stars: each star has two hit zones — the left half sets
+// Star rating on a 0.5..max scale (max is the app's fixed 10-point scale).
+// Supports half stars: each star has two hit zones — the left half sets
 // n-0.5, the right half sets n. Interactive by default (hover preview, click to
 // set, click the current value again to clear); pass :readonly for a static
 // display. Keyboard-operable: each half is a focusable button (Enter/Space).
@@ -17,6 +17,9 @@ const props = defineProps({
   readonly: { type: Boolean, default: false },
   size: { type: String, default: 'md' }, // sm | md | lg
   showValue: { type: Boolean, default: true },
+  // Space-saving readonly display: one filled star + "value/max". Used on the
+  // library cards, where a full 10-star row would overflow the grid tile.
+  compact: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -40,7 +43,12 @@ function set(v) {
 </script>
 
 <template>
-  <div class="inline-flex items-center gap-2">
+  <!-- Compact readonly: single star + value, for tight spaces (cards). -->
+  <div v-if="compact" class="inline-flex items-center gap-1">
+    <Icon :d="ICONS.star" fill :class="[sizeClass, 'text-amber-400']" />
+    <span class="text-sm font-medium text-slate-600 dark:text-slate-300 tabular-nums">{{ modelValue }}<span class="text-slate-400 dark:text-slate-500">/{{ max }}</span></span>
+  </div>
+  <div v-else class="inline-flex items-center gap-2">
     <div class="flex items-center" :class="readonly ? '' : 'gap-0.5'" @mouseleave="hover = 0">
       <div
         v-for="n in max"

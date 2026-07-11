@@ -8,7 +8,7 @@ export function progressPct(entry) {
   if (entry.status === 'finished') return 100
   const total = entry.book?.pageCount || 0
   if (!total) return 0
-  return Math.min(100, Math.round(((entry.currentPage || 0) / total) * 100))
+  return Math.max(0, Math.min(100, Math.round(((entry.currentPage || 0) / total) * 100)))
 }
 
 export function authorLabel(entry) {
@@ -43,8 +43,12 @@ export function fmtDuration(min) {
   return `${m}m`
 }
 
-// YYYY-MM-DD in local time — used as a stable per-day key for streaks.
+// YYYY-MM-DD per-day key for streaks. Uses UTC so a date-only session date
+// (stored at UTC midnight, e.g. "2026-07-11") maps back to that same calendar
+// day instead of shifting a day in timezones behind UTC. Streak math in stats.js
+// steps its cursor in UTC to match.
 export function dayKey(value) {
   const d = new Date(value)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
 }

@@ -12,6 +12,8 @@ import Icon from './Icon.vue'
 import { ICONS } from '@/utils/icons.js'
 import { STATUSES, STATUS_META } from '@/utils/constants.js'
 import { progressPct, authorLabel, seriesLabel } from '@/utils/format.js'
+import { useShelfSettings } from '@/composables/useShelfSettings.js'
+import { resolveTarget, buildOpenUrl } from '@/utils/openTarget.js'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -23,6 +25,20 @@ const emit = defineEmits(['open', 'edit', 'delete', 'progress'])
 
 const { t } = useI18n()
 const { upsert } = useLibrary()
+const { settings } = useShelfSettings()
+
+// External "open in" destination for this entry (null for non-openable formats).
+const openUrl = computed(() => buildOpenUrl(resolveTarget(props.entry, settings.openDefaults), props.entry))
+function openExternal() {
+  if (openUrl.value) window.open(openUrl.value, '_blank', 'noopener,noreferrer')
+}
+// Poster / title click: open the configured external page when there is one,
+// otherwise fall back to the detail modal (physical books / no target). The
+// detail modal always has its own way in — the ⓘ button and the context menu.
+function primary() {
+  if (openUrl.value) openExternal()
+  else emit('open', props.entry)
+}
 
 const isList = computed(() => props.view === 'list')
 const book = computed(() => props.entry.book || {})
@@ -75,9 +91,21 @@ function fireConfetti() {
 
 // ── Context menu ─────────────────────────────────────────────────────────────
 const menu = ref({ show: false, x: 0, y: 0 })
-function openMenu(e) { menu.value = { show: true, x: e.clientX, y: e.clientY } }
+function openMenu(e) {
+  // Keyboard activation (Enter/Space) reports clientX/Y as 0 — anchor to the
+  // button instead of flinging the menu to the viewport corner.
+  let x = e.clientX
+  let y = e.clientY
+  if (!x && !y && e.currentTarget?.getBoundingClientRect) {
+    const r = e.currentTarget.getBoundingClientRect()
+    x = r.right
+    y = r.bottom
+  }
+  menu.value = { show: true, x, y }
+}
 const menuItems = computed(() => [
-  { label: t('shelf.card.open'), icon: ICONS.externalLink, action: () => emit('open', props.entry) },
+  { label: t('shelf.card.details'), icon: ICONS.book, action: () => emit('open', props.entry) },
+  ...(openUrl.value ? [{ label: t('shelf.open.openIn'), icon: ICONS.externalLink, action: openExternal }] : []),
   { label: t('shelf.card.updateProgress'), icon: ICONS.checkCircle, action: () => emit('progress', props.entry) },
   { label: props.entry.status === 'finished' ? t('shelf.card.markReading') : t('shelf.card.markFinished'),
     icon: ICONS.checkThin, action: () => (props.entry.status === 'finished' ? patchItem({ status: 'reading' }) : markFinished()) },
@@ -95,13 +123,37 @@ const menuItems = computed(() => [
     :class="[statusMeta.card, isList ? 'flex flex-row' : 'flex flex-col']"
     @contextmenu.prevent="openMenu"
   >
-    <!-- Cover (click opens the detail modal) -->
+    <!-- Cover — click opens the configured external page (or the detail modal
+         when the book has no external target). -->
     <div
-      class="relative shrink-0 overflow-hidden cursor-pointer"
+      class="group/poster relative shrink-0 overflow-hidden cursor-pointer"
       :class="isList ? 'w-16 sm:w-20 self-stretch' : 'w-full'"
-      @click="emit('open', entry)"
+      @click="primary"
+      :title="openUrl ? t('shelf.open.openIn') : t('shelf.card.details')"
     >
       <CoverImage :src="book.coverUrl" :alt="book.title" :fill="isList" />
+
+      <!-- Open-in-external affordance — reveals on poster hover (desktop only) -->
+      <div
+        v-if="openUrl"
+        class="pointer-events-none absolute inset-0 hidden sm:flex items-center justify-center bg-black/0 group-hover/poster:bg-black/30 transition-colors"
+      >
+        <Icon :d="ICONS.externalLink" sw="2" class="w-5 h-5 text-white opacity-0 group-hover/poster:opacity-100 transition-opacity drop-shadow" />
+      </div>
+
+      <!-- Details button — the dedicated way into the detail modal now that the
+           poster opens externally. Hover-revealed on desktop, always on mobile.
+           Hidden in list view, where the tiny cover is already crowded and the
+           kebab menu's "Details" is right there. -->
+      <button
+        v-if="!isList"
+        type="button"
+        @click.stop="emit('open', entry)"
+        :title="t('shelf.card.details')"
+        class="nuc-press cursor-pointer absolute bottom-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 hover:bg-black/60 hover:scale-110"
+      >
+        <Icon :d="ICONS.info" sw="2" class="w-4 h-4" />
+      </button>
 
       <!-- Corner status check (top-left), like watchlist -->
       <!-- finished → solid green, always shown -->
@@ -156,7 +208,7 @@ const menuItems = computed(() => [
     <div class="flex-1 min-w-0 flex flex-col gap-1.5 p-3">
       <div class="flex items-start justify-between gap-1.5">
         <div class="min-w-0">
-          <button type="button" @click="emit('open', entry)" class="block text-left font-semibold text-slate-900 dark:text-white text-sm leading-tight line-clamp-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer">
+          <button type="button" @click="primary" :title="openUrl ? t('shelf.open.openIn') : t('shelf.card.details')" class="block text-left font-semibold text-slate-900 dark:text-white text-sm leading-tight line-clamp-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer">
             {{ book.title }}
           </button>
           <p v-if="authorLabel(entry)" class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{{ authorLabel(entry) }}</p>
@@ -171,13 +223,13 @@ const menuItems = computed(() => [
         </button>
       </div>
 
-      <p v-if="seriesLabel(entry)" class="text-xs text-slate-400 dark:text-slate-500 truncate">{{ seriesLabel(entry) }}</p>
+      <p v-if="seriesLabel(entry)" class="text-xs text-slate-400 dark:text-slate-400 truncate">{{ seriesLabel(entry) }}</p>
 
-      <p v-if="entry.status === 'reading' && book.pageCount" class="text-xs text-slate-400 dark:text-slate-500">
-        {{ t('shelf.card.pageOf', { current: entry.currentPage, total: book.pageCount, pct }) }}
+      <p v-if="entry.status === 'reading' && book.pageCount" class="text-xs text-slate-400 dark:text-slate-400">
+        {{ t('shelf.card.pageOf', { current: entry.currentPage || 0, total: book.pageCount, pct }) }}
       </p>
 
-      <RatingControl v-if="entry.rating" :model-value="entry.rating" :max="ratingMax" readonly size="sm" class="mt-0.5" />
+      <RatingControl v-if="entry.rating" :model-value="entry.rating" :max="ratingMax" readonly compact size="sm" class="mt-0.5" />
 
       <div class="flex items-center gap-1.5 flex-wrap mt-auto pt-1">
         <!-- Clickable status badge — cycles status -->

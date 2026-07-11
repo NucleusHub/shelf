@@ -33,12 +33,12 @@ const rows = computed(() => {
   <section class="flex flex-col gap-3">
     <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ t('shelf.info.heading') }}</h2>
 
-    <p v-if="book.description" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">{{ book.description }}</p>
+    <p v-if="book.description" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line break-words">{{ book.description }}</p>
 
     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
-      <div v-for="row in rows" :key="row.label" class="flex flex-col">
+      <div v-for="row in rows" :key="row.label" class="flex flex-col min-w-0">
         <dt class="text-xs text-slate-400 dark:text-slate-500">{{ row.label }}</dt>
-        <dd class="text-sm text-slate-800 dark:text-slate-200">{{ row.value }}</dd>
+        <dd class="text-sm text-slate-800 dark:text-slate-200 break-words">{{ row.value }}</dd>
       </div>
     </dl>
   </section>

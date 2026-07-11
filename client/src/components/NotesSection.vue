@@ -92,7 +92,7 @@ onMounted(load)
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0 flex-1">
             <p v-if="note.title" class="font-medium text-slate-900 dark:text-white text-sm">{{ note.title }}</p>
-            <p v-if="note.content" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap mt-0.5">{{ note.content }}</p>
+            <p v-if="note.content" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-words mt-0.5">{{ note.content }}</p>
             <p class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">{{ fmtDate(note.updatedAt, locale) }}</p>
           </div>
           <div class="flex gap-0.5 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">

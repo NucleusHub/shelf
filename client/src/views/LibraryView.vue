@@ -102,12 +102,19 @@ const filtered = computed(() => {
   return [...base].sort((a, b) => cmp(a, b) * dir)
 })
 
+// Milliseconds for a date, or 0 for missing/invalid — a comparator must never
+// return NaN (it makes Array.sort ordering undefined for the whole list).
+function time(v) {
+  const t = new Date(v).getTime()
+  return Number.isNaN(t) ? 0 : t
+}
+
 function cmp(a, b) {
   switch (sortBy.value) {
     case 'title': return (a.book?.title || '').localeCompare(b.book?.title || '')
     case 'author': return (a.book?.authors?.[0] || '').localeCompare(b.book?.authors?.[0] || '')
-    case 'added': return new Date(a.createdAt) - new Date(b.createdAt)
-    case 'updated': return new Date(a.updatedAt) - new Date(b.updatedAt)
+    case 'added': return time(a.createdAt) - time(b.createdAt)
+    case 'updated': return time(a.updatedAt) - time(b.updatedAt)
     case 'rating': return (a.rating ?? -1) - (b.rating ?? -1)
     case 'progress': return progressPct(a) - progressPct(b)
     default: return 0
@@ -157,11 +164,21 @@ const detailId = ref(null)
 const showDetail = ref(false)
 function openDetail(entry) { detailId.value = entry.id; showDetail.value = true }
 
+const deleting = ref(false)
 async function doDelete() {
   const entry = confirmDeleteEntry.value
-  confirmDeleteEntry.value = null
-  await deleteBook(entry.id)
-  remove(entry.id)
+  if (!entry || deleting.value) return
+  deleting.value = true
+  try {
+    await deleteBook(entry.id)
+    remove(entry.id)
+    confirmDeleteEntry.value = null
+  } catch {
+    // Keep the confirm dialog open and the book in the list if the delete failed,
+    // rather than optimistically removing it and swallowing the error.
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(load)
@@ -249,7 +266,7 @@ onMounted(load)
           <div class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-center gap-1.5 flex-wrap">
               <div class="relative">
-                <select v-model="filterGenre" :class="['appearance-none cursor-pointer pl-3 pr-8', CHIP_BASE, filterGenre ? CHIP_ACTIVE : CHIP_IDLE]">
+                <select v-model="filterGenre" :class="['appearance-none cursor-pointer pl-3 pr-8 max-w-[10rem]', CHIP_BASE, filterGenre ? CHIP_ACTIVE : CHIP_IDLE]">
                   <option value="">{{ t('shelf.filter.allGenres') }}</option>
                   <option v-for="g in genreOptions" :key="g" :value="g">{{ g }}</option>
                 </select>
@@ -263,7 +280,7 @@ onMounted(load)
                 <Icon :d="ICONS.caretDown" sw="2.5" class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-50" />
               </div>
               <div class="relative">
-                <select v-model="filterFormat" :class="['appearance-none cursor-pointer pl-3 pr-8', CHIP_BASE, filterFormat ? CHIP_ACTIVE : CHIP_IDLE]">
+                <select v-model="filterFormat" :class="['appearance-none cursor-pointer pl-3 pr-8 max-w-[10rem]', CHIP_BASE, filterFormat ? CHIP_ACTIVE : CHIP_IDLE]">
                   <option value="">{{ t('shelf.filter.allFormats') }}</option>
                   <option v-for="f in Object.keys(FORMAT_META)" :key="f" :value="f">{{ t(FORMAT_META[f].i18n) }}</option>
                 </select>
@@ -376,6 +393,7 @@ onMounted(load)
         :title="t('shelf.delete.title')"
         :message="t('shelf.delete.message', { title: confirmDeleteEntry?.book?.title })"
         :confirm-label="t('shelf.delete.confirm')"
+        :busy="deleting"
         @confirm="doDelete"
         @cancel="confirmDeleteEntry = null"
       />

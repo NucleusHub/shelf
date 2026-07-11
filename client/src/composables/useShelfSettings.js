@@ -1,19 +1,49 @@
 import { reactive, watch } from 'vue'
 import { getSettings, saveSettings } from '@/api/shelf.js'
+import { DEFAULT_TYPE } from '@/utils/openTarget.js'
 
 // Per-user Shelf preferences (rating scale, default view, enabled import
-// providers). The server is the source of truth so they follow the user across
-// devices; localStorage is a no-flash cache so the last-known values render
-// instantly before the server hydrate lands. Exposed as a module-level reactive
-// singleton — the settings modal, the rating control and the library view all
-// read/write the same live state. Mirrors watchlist's useOpenSettings pattern.
+// providers, and the per-kind "open in" defaults). The server is the source of
+// truth so they follow the user across devices; localStorage is a no-flash
+// cache so the last-known values render instantly before the server hydrate
+// lands. Exposed as a module-level reactive singleton — the settings modal, the
+// rating control and the library view all read/write the same live state.
+// Mirrors watchlist's useOpenSettings pattern.
 const KEY = 'shelf-settings'
-const DEFAULT = () => ({ ratingMax: 10, defaultView: 'grid', providers: ['openlibrary'] })
+
+// One "open in" target with its fields filled in.
+const normalizeTarget = (t, fallbackType) => ({
+  type: t?.type || fallbackType,
+  customUrl: t?.customUrl || '',
+  titleFormat: t?.titleFormat || 'raw',
+})
+const defaultOpen = () => ({
+  book: normalizeTarget(null, DEFAULT_TYPE.book),
+  audio: normalizeTarget(null, DEFAULT_TYPE.audio),
+})
+const DEFAULT = () => ({ ratingMax: 10, defaultView: 'grid', providers: ['openlibrary'], openDefaults: defaultOpen() })
+
+// Merge whatever we loaded/hydrated onto a full default so openDefaults is
+// always present and complete (older cached blobs predate it). The rating scale
+// is fixed at 10 — any older 5 that lingers in a cache or server doc is coerced
+// up (and re-persisted by the save watcher), so books always show 10 stars.
+function withDefaults(raw) {
+  const base = DEFAULT()
+  return {
+    ...base,
+    ...raw,
+    ratingMax: 10,
+    openDefaults: {
+      book: normalizeTarget(raw?.openDefaults?.book, DEFAULT_TYPE.book),
+      audio: normalizeTarget(raw?.openDefaults?.audio, DEFAULT_TYPE.audio),
+    },
+  }
+}
 
 function loadLocal() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY))
-    if (raw && [5, 10].includes(raw.ratingMax)) return { ...DEFAULT(), ...raw }
+    if (raw && typeof raw === 'object') return withDefaults(raw)
   } catch {}
   return DEFAULT()
 }
@@ -42,7 +72,7 @@ async function hydrate() {
   if (hydrated) return
   hydrated = true
   try {
-    const server = await getSettings()
+    const server = withDefaults(await getSettings())
     if (touched) return
     lastSaved = JSON.stringify(server)
     Object.assign(settings, server)
@@ -58,6 +88,11 @@ export function useShelfSettings() {
     update(partial) {
       touched = true
       Object.assign(settings, partial)
+    },
+    // Set the per-medium "open in" default (kind is 'book' | 'audio').
+    setOpenDefault(kind, target) {
+      touched = true
+      settings.openDefaults[kind] = normalizeTarget(target, DEFAULT_TYPE[kind])
     },
   }
 }

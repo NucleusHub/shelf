@@ -68,11 +68,12 @@ export function enabledProviders(enabledIds = []) {
 export async function searchProviders(enabledIds, query) {
   const providers = enabledProviders(enabledIds)
   const settled = await Promise.allSettled(providers.map((p) => p.search(query)))
-  const results = settled.flatMap((s) => (s.status === 'fulfilled' ? s.value : []))
+  const results = settled.flatMap((s) => (s.status === 'fulfilled' && Array.isArray(s.value) ? s.value : []))
 
   const seen = new Set()
   const merged = []
   for (const r of results) {
+    if (!r || !r.title) continue
     const key = (r.isbn || `${r.title}|${(r.authors || [])[0] || ''}`).toLowerCase().trim()
     if (seen.has(key)) continue
     seen.add(key)

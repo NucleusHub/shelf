@@ -10,6 +10,7 @@ import { ICONS } from '@/utils/icons.js'
 import { searchProviders, uploadCover } from '@/api/shelf.js'
 import { useShelfSettings } from '@/composables/useShelfSettings.js'
 import { STATUSES, STATUS_META, FORMATS, FORMAT_META } from '@/utils/constants.js'
+import { OPEN_OPTIONS, TITLE_FORMATS, mediumOf } from '@/utils/openTarget.js'
 
 // Add or edit a book. Title doubles as a metadata search box (typeahead over the
 // enabled import providers) — pick a result to autofill everything, or just type
@@ -34,8 +35,13 @@ const blank = () => ({
   pageCount: '', coverUrl: null, isbn: '', identifiers: {},
   status: 'planned', format: 'physical', owned: true, favorite: false,
   rating: null, currentPage: '',
+  // Per-item "open in" override; empty type means inherit the global default.
+  openType: '', openCustomUrl: '', openTitleFormat: 'raw',
 })
 const form = reactive(blank())
+
+// The built-in destinations for the currently-selected format's medium.
+const openOptions = computed(() => OPEN_OPTIONS[mediumOf(form.format)] || [])
 
 const results = ref([])
 const showDropdown = ref(false)
@@ -58,10 +64,13 @@ function reset() {
       genresText: (b.genres || []).join(', '),
       language: b.language || '', publisher: b.publisher || '', publishedDate: b.publishedDate || '',
       pageCount: b.pageCount ?? '', coverUrl: b.coverUrl || null, isbn: b.isbn || '',
-      identifiers: b.identifiers || {},
+      identifiers: { ...(b.identifiers || {}) },
       status: props.initial.status, format: props.initial.format,
       owned: props.initial.owned, favorite: props.initial.favorite,
       rating: props.initial.rating, currentPage: props.initial.currentPage ?? '',
+      openType: props.initial.openTarget?.type || '',
+      openCustomUrl: props.initial.openTarget?.customUrl || '',
+      openTitleFormat: props.initial.openTarget?.titleFormat || 'raw',
     })
   }
   results.value = []
@@ -72,6 +81,16 @@ function reset() {
 
 watch(() => props.show, (v) => { if (v) reset() }, { immediate: true })
 watch(() => props.resetKey, () => { if (props.show) reset() })
+// Reseed if the parent swaps which entry is being edited without closing first.
+watch(() => props.initial, () => { if (props.show) reset() })
+
+// If the format changes to one that doesn't offer the picked destination, drop
+// the override so the select never shows a value it can't represent.
+watch(() => form.format, () => {
+  if (form.openType && !openOptions.value.some((o) => o.type === form.openType)) {
+    form.openType = ''
+  }
+})
 
 // ── Metadata search ──────────────────────────────────────────────────────────
 function onTitleInput() {
@@ -144,7 +163,7 @@ function submit() {
     pageCount: numOrNull(form.pageCount),
     coverUrl: form.coverUrl,
     isbn: form.isbn.trim(),
-    identifiers: form.identifiers || {},
+    identifiers: { ...(form.identifiers || {}) },
   }
   const item = {
     status: form.status,
@@ -153,6 +172,14 @@ function submit() {
     favorite: !!form.favorite,
     rating: form.rating || null,
     currentPage: numOrNull(form.currentPage) || 0,
+    // null tells the entry to inherit the per-kind global default.
+    openTarget: form.openType
+      ? {
+          type: form.openType,
+          customUrl: form.openType === 'custom' ? form.openCustomUrl.trim() : '',
+          titleFormat: form.openType === 'custom' ? form.openTitleFormat : 'raw',
+        }
+      : null,
   }
   emit('submit', { book, item })
 }
@@ -291,10 +318,34 @@ function submit() {
             </div>
           </div>
 
+          <!-- Open in (overrides the per-medium global default). -->
+          <div v-if="openOptions.length" class="flex flex-col gap-1.5">
+            <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.openIn') }}</label>
+            <select v-model="form.openType" class="cursor-pointer bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="">{{ t('shelf.form.openUseGlobal') }}</option>
+              <option v-for="opt in openOptions" :key="opt.type" :value="opt.type">{{ t(opt.i18n) }}</option>
+            </select>
+            <template v-if="form.openType === 'custom'">
+              <input
+                v-model="form.openCustomUrl"
+                type="url"
+                :placeholder="t('shelf.open.customPlaceholder')"
+                class="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-500 dark:text-slate-400 shrink-0">{{ t('shelf.open.titleFormat') }}</label>
+                <select v-model="form.openTitleFormat" class="cursor-pointer flex-1 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option v-for="fmt in TITLE_FORMATS" :key="fmt.value" :value="fmt.value">{{ t(fmt.i18n) }} — {{ fmt.example }}</option>
+                </select>
+              </div>
+              <p class="text-xs text-slate-400 dark:text-slate-500">{{ t('shelf.open.customHint') }}</p>
+            </template>
+          </div>
+
           <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div class="flex flex-col gap-1.5">
               <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.rating') }}</label>
-              <RatingControl v-model="form.rating" :max="ratingMax" size="sm" />
+              <RatingControl v-model="form.rating" :max="ratingMax" size="md" />
             </div>
             <label class="flex items-center gap-2 cursor-pointer select-none">
               <input v-model="form.owned" type="checkbox" class="cursor-pointer w-4 h-4 rounded accent-indigo-600" />

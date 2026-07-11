@@ -18,6 +18,7 @@ import Icon from './Icon.vue'
 import { ICONS } from '@/utils/icons.js'
 import { STATUS_META } from '@/utils/constants.js'
 import { progressPct, authorLabel, seriesLabel, fmtDate } from '@/utils/format.js'
+import { resolveTarget, buildOpenUrl } from '@/utils/openTarget.js'
 
 // The book detail as an overlay (not a page). Sub-modals (progress, edit, note
 // editor, delete) render at the default z-[200], above this modal's z-[150].
@@ -41,6 +42,12 @@ const confirmDelete = ref(false)
 const book = computed(() => entry.value?.book || {})
 const pct = computed(() => progressPct(entry.value))
 const statusMeta = computed(() => STATUS_META[entry.value?.status] || STATUS_META.planned)
+
+// External "open in" destination for this entry (null for non-openable formats).
+const openUrl = computed(() => (entry.value ? buildOpenUrl(resolveTarget(entry.value, settings.openDefaults), entry.value) : null))
+function openExternal() {
+  if (openUrl.value) window.open(openUrl.value, '_blank', 'noopener,noreferrer')
+}
 
 watch(() => props.show, async (v) => {
   if (!v) return
@@ -119,6 +126,9 @@ function onNotesCount(count) {
               <p v-if="seriesLabel(entry)" class="text-sm text-slate-400 dark:text-slate-500">{{ seriesLabel(entry) }}</p>
             </div>
             <div class="shrink-0 flex items-center gap-0.5">
+              <button v-if="openUrl" @click="openExternal" :title="t('shelf.open.openIn')" class="nuc-press cursor-pointer p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                <Icon :d="ICONS.externalLink" class="w-5 h-5" />
+              </button>
               <button @click="toggleFavorite" :title="entry.favorite ? t('shelf.card.unfavorite') : t('shelf.card.favorite')" class="nuc-fav nuc-press cursor-pointer p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" :class="entry.favorite ? 'text-rose-500' : 'text-slate-400'">
                 <FavoriteHeart :active="entry.favorite" class="w-5 h-5" />
               </button>
@@ -133,7 +143,7 @@ function onNotesCount(count) {
 
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-xs font-medium px-2.5 py-1 rounded-full" :class="statusMeta.badge">{{ t(statusMeta.i18n) }}</span>
-            <RatingControl :model-value="entry.rating" :max="settings.ratingMax" size="sm" @update:modelValue="setRating" />
+            <RatingControl :model-value="entry.rating" :max="settings.ratingMax" size="md" @update:modelValue="setRating" />
           </div>
 
           <!-- Reading progress -->

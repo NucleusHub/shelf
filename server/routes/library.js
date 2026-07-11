@@ -54,11 +54,19 @@ router.post('/books', async (req, res) => {
     if (!bookData.title) return res.status(400).json({ error: 'Title is required' })
 
     const book = await Book.create({ ...bookData, profileId: req.profile.profileId })
-    const item = await LibraryItem.create({
-      ...itemData,
-      book: book._id,
-      profileId: req.profile.profileId,
-    })
+    let item
+    try {
+      item = await LibraryItem.create({
+        ...itemData,
+        book: book._id,
+        profileId: req.profile.profileId,
+      })
+    } catch (err) {
+      // Don't leave a Book with no entry pointing at it if the item (e.g. a bad
+      // status/format enum) fails validation.
+      await Book.deleteOne({ _id: book._id }).catch(() => {})
+      throw err
+    }
     item.book = book
     res.status(201).json(toEntry(item))
   } catch (err) {
@@ -80,11 +88,21 @@ router.patch('/books/:id', async (req, res) => {
 
     const bookData = pick(req.body?.book ?? {}, BOOK_FIELDS)
     if (Object.keys(bookData).length) {
+      const current = await Book.findOne({ _id: item.book, profileId: req.profile.profileId }).lean()
+      // Merge identifiers rather than replacing the whole Mixed map, so a partial
+      // update (e.g. just isbn13) doesn't wipe an existing orbitFileId / provider id.
+      if (bookData.identifiers && typeof bookData.identifiers === 'object' && current?.identifiers) {
+        bookData.identifiers = { ...current.identifiers, ...bookData.identifiers }
+      }
       await Book.updateOne(
         { _id: item.book, profileId: req.profile.profileId },
         { $set: bookData },
         { runValidators: true }
       )
+      // Reclaim the old locally-uploaded cover when it's been replaced/removed.
+      if ('coverUrl' in bookData && current?.coverUrl && current.coverUrl !== bookData.coverUrl) {
+        unlinkCover(current.coverUrl)
+      }
     }
 
     await item.populate('book')

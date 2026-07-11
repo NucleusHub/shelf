@@ -9,7 +9,7 @@ export const BOOK_FIELDS = [
 ]
 
 export const ITEM_FIELDS = [
-  'status', 'rating', 'favorite', 'owned', 'format', 'currentPage',
+  'status', 'rating', 'favorite', 'owned', 'format', 'openTarget', 'currentPage',
   'startedReading', 'finishedReading',
 ]
 
@@ -32,6 +32,7 @@ export function toEntry(item) {
     favorite: item.favorite,
     owned: item.owned,
     format: item.format,
+    openTarget: item.openTarget || null,
     currentPage: item.currentPage,
     startedReading: item.startedReading,
     finishedReading: item.finishedReading,

@@ -24,18 +24,20 @@ const error = ref('')
 
 const total = computed(() => props.entry?.book?.pageCount || 0)
 const previewPct = computed(() => {
+  if (page.value === '' || page.value == null || !total.value) return null
   const p = Number(page.value)
-  if (!total.value || !Number.isFinite(p)) return null
-  return Math.min(100, Math.round((p / total.value) * 100))
+  if (!Number.isFinite(p)) return null
+  return Math.max(0, Math.min(100, Math.round((p / total.value) * 100)))
 })
 
-// Seed with the current page each time it opens.
-watch(() => props.show, (v) => {
-  if (!v) return
+// Seed with the current page each time it opens, or if the entry swaps while open.
+function seed() {
   page.value = props.entry?.currentPage || ''
   minutes.value = ''
   error.value = ''
-})
+}
+watch(() => props.show, (v) => { if (v) seed() })
+watch(() => props.entry?.id, () => { if (props.show) seed() })
 
 async function save() {
   if (saving.value || !props.entry) return

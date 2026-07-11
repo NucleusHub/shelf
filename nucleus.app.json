@@ -1,0 +1,48 @@
+{
+  "id": "shelf",
+  "name": "Shelf",
+  "description": "Your reading life",
+  "version": "0.1.0",
+  "manifestVersion": 1,
+  "compatibility": {
+    "nucleus": ">=0.1.0 <1.0.0"
+  },
+  "route": "/shelf",
+  "icon": "icon.svg",
+  "category": "media",
+  "hub": {
+    "showInSidebar": true,
+    "showOnDashboard": true
+  },
+  "nginx": {
+    "routes": [
+      {
+        "path": "/shelf",
+        "upstream": "shelf-client:5181",
+        "websocket": true
+      },
+      {
+        "path": "/api/shelf",
+        "upstream": "shelf-server:3010"
+      }
+    ]
+  },
+  "server": {
+    "service": "shelf-server",
+    "port": 3010,
+    "env": {
+      "MONGODB_URI": "mongodb://mongo:27017/nucleus",
+      "JWT_SECRET": "${JWT_SECRET:-nucleus-jwt-secret}"
+    },
+    "depends": [
+      "mongo"
+    ],
+    "namedVolumes": [
+      "shelf_uploads_data:/app/uploads"
+    ],
+    "bindMounts": [
+      "../core:/app/core:ro"
+    ],
+    "healthEndpoint": "/api/shelf/health"
+  }
+}

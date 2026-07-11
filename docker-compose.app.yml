@@ -1,0 +1,57 @@
+services:
+  shelf-server:
+    build:
+      context: ./server
+    restart: unless-stopped
+    labels:
+      nucleus.managed: "true"
+      nucleus.stack: "nucleus"
+      nucleus.role: "app-server"
+      nucleus.app: "shelf"
+      nucleus.depends: "mongo"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/nucleus
+      JWT_SECRET: ${JWT_SECRET:-nucleus-jwt-secret}
+      PORT: 3010
+    volumes:
+      - ./server:/app
+      - ../../core:/app/core:ro
+      - shelf_server_modules:/app/node_modules
+      - shelf_uploads_data:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3010/api/shelf/health',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  shelf-client:
+    build:
+      context: ./client
+    restart: unless-stopped
+    labels:
+      nucleus.managed: "true"
+      nucleus.stack: "nucleus"
+      nucleus.role: "app-client"
+      nucleus.app: "shelf"
+    environment:
+      API_TARGET: http://shelf-server:3010
+      NUCLEUS_HOST: ${NUCLEUS_HOST:-nucleus.olm-altair.ts.net}
+    volumes:
+      - ./client/src:/app/src
+      - ./client/index.html:/app/index.html
+      - ./client/vite.config.js:/app/vite.config.js
+      - ../../core:/app/core:ro
+      # Widget package, so core/AuthGuard's @widgets-core import resolves (Pulse
+      # widgets can float in this app). Mirrors the hub/watchlist. Read-only.
+      - ../../widgets:/app/widgets:ro
+    depends_on:
+      shelf-server:
+        condition: service_healthy
+
+volumes:
+  shelf_server_modules:
+  shelf_uploads_data:

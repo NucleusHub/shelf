@@ -192,6 +192,13 @@
   "shelf.open.save": "Uložit",
   "shelf.open.cancel": "Zrušit",
 
+  "shelf.sources.title": "Zdroje importu",
+  "shelf.sources.desc": "Vyberte, které zdroje se prohledají při přidávání knihy.",
+  "shelf.sources.needsKey": "Vyžaduje API klíč",
+  "shelf.sources.empty": "Nejsou k dispozici žádné zdroje importu.",
+  "shelf.plugin.addedBy": "Přidáno pluginem {name}",
+  "shelf.plugin.badge": "Plugin",
+
   "shelf.stats.heading": "Statistiky",
   "shelf.stats.empty": "Přidej knihy a uvidíš statistiky svého čtení.",
   "shelf.stats.finishedThisYear": "Přečteno v roce {year}",

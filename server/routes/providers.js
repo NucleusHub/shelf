@@ -4,10 +4,17 @@ import { describeProviders, enabledProviders, searchProviders } from '../provide
 
 const router = Router()
 
-// The provider ids this user has enabled (falls back to the default set).
+// The provider ids searched for this user. Built-ins are opt-in (must be listed
+// in `providers`); plugin-contributed sources are on by default (the plugin
+// being installed is the opt-in) unless the user turned them off in
+// `hiddenProviders`. So installing the manga plugin makes it searchable with no
+// extra step, while still being switch-off-able in Settings.
 async function userProviderIds(profileId) {
-  const doc = await ShelfSettings.findOne({ profileId }).select('providers').lean()
-  return doc?.providers ?? ['openlibrary']
+  const doc = await ShelfSettings.findOne({ profileId }).select('providers hiddenProviders').lean()
+  const stored = doc?.providers ?? ['openlibrary']
+  const hidden = new Set(doc?.hiddenProviders ?? [])
+  const pluginIds = describeProviders().filter((p) => p.pluginId && p.available).map((p) => p.id)
+  return [...new Set([...stored, ...pluginIds])].filter((id) => !hidden.has(id))
 }
 
 // GET /providers — descriptors for the settings UI (id, label, whether it needs

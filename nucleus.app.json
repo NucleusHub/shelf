@@ -2,7 +2,7 @@
   "id": "shelf",
   "name": "Shelf",
   "description": "Your reading life",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "manifestVersion": 1,
   "compatibility": {
     "nucleus": ">=0.1.0 <1.0.0"
@@ -10,6 +10,9 @@
   "route": "/shelf",
   "icon": "icon.svg",
   "category": "media",
+  "localization": {
+    "defaultLanguage": "en-US"
+  },
   "hub": {
     "showInSidebar": true,
     "showOnDashboard": true

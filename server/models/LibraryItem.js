@@ -14,11 +14,10 @@ export const FORMATS = ['physical', 'ebook', 'audiobook', 'eaudiobook']
 // default (see ShelfSettings.openDefaults); null means inherit the default.
 const openTargetSchema = new mongoose.Schema(
   {
-    type: {
-      type: String,
-      enum: ['googlebooks', 'amazon', 'goodreads', 'annas', 'audible', 'googleplay', 'custom'],
-      default: 'custom',
-    },
+    // Free string: the destination set is open-ended (plugins contribute their
+    // own, e.g. 'anilist'); the client owns which types exist. See
+    // apps/shelf/client/src/utils/openTarget.js.
+    type: { type: String, default: 'custom' },
     customUrl: { type: String, default: '' },
     titleFormat: {
       type: String,

@@ -17,11 +17,13 @@ const normalizeTarget = (t, fallbackType) => ({
   customUrl: t?.customUrl || '',
   titleFormat: t?.titleFormat || 'raw',
 })
+// Built-in mediums always exist; plugin-contributed mediums (e.g. manga) are
+// merged in from whatever the server stored — Shelf doesn't hardcode them.
 const defaultOpen = () => ({
   book: normalizeTarget(null, DEFAULT_TYPE.book),
   audio: normalizeTarget(null, DEFAULT_TYPE.audio),
 })
-const DEFAULT = () => ({ ratingMax: 10, defaultView: 'grid', providers: ['openlibrary'], openDefaults: defaultOpen() })
+const DEFAULT = () => ({ ratingMax: 10, defaultView: 'grid', providers: ['openlibrary'], hiddenProviders: [], openDefaults: defaultOpen() })
 
 // Merge whatever we loaded/hydrated onto a full default so openDefaults is
 // always present and complete (older cached blobs predate it). The rating scale
@@ -33,10 +35,21 @@ function withDefaults(raw) {
     ...base,
     ...raw,
     ratingMax: 10,
-    openDefaults: {
-      book: normalizeTarget(raw?.openDefaults?.book, DEFAULT_TYPE.book),
-      audio: normalizeTarget(raw?.openDefaults?.audio, DEFAULT_TYPE.audio),
-    },
+    hiddenProviders: Array.isArray(raw?.hiddenProviders) ? raw.hiddenProviders : [],
+    openDefaults: (() => {
+      const rawOpen = raw?.openDefaults || {}
+      const out = {
+        book: normalizeTarget(rawOpen.book, DEFAULT_TYPE.book),
+        audio: normalizeTarget(rawOpen.audio, DEFAULT_TYPE.audio),
+      }
+      // Carry through any plugin mediums the server stored (keeps them across
+      // hydrate without Shelf needing to know their ids).
+      for (const [k, v] of Object.entries(rawOpen)) {
+        if (k === 'book' || k === 'audio') continue
+        out[k] = normalizeTarget(v, DEFAULT_TYPE[k] || 'custom')
+      }
+      return out
+    })(),
   }
 }
 

@@ -192,6 +192,13 @@
   "shelf.open.save": "Save",
   "shelf.open.cancel": "Cancel",
 
+  "shelf.sources.title": "Import sources",
+  "shelf.sources.desc": "Choose which sources are searched when you add a book.",
+  "shelf.sources.needsKey": "Needs an API key",
+  "shelf.sources.empty": "No import sources are available.",
+  "shelf.plugin.addedBy": "Added by the {name} plugin",
+  "shelf.plugin.badge": "Plugin",
+
   "shelf.stats.heading": "Statistics",
   "shelf.stats.empty": "Add some books to see your reading statistics.",
   "shelf.stats.finishedThisYear": "Finished in {year}",

@@ -10,7 +10,7 @@ import { ICONS } from '@/utils/icons.js'
 import { searchProviders, uploadCover } from '@/api/shelf.js'
 import { useShelfSettings } from '@/composables/useShelfSettings.js'
 import { STATUSES, STATUS_META, FORMATS, FORMAT_META } from '@/utils/constants.js'
-import { OPEN_OPTIONS, TITLE_FORMATS, mediumOf } from '@/utils/openTarget.js'
+import { OPEN_OPTIONS, TITLE_FORMATS, mediumOfEntry } from '@/utils/openTarget.js'
 
 // Add or edit a book. Title doubles as a metadata search box (typeahead over the
 // enabled import providers) — pick a result to autofill everything, or just type
@@ -40,8 +40,11 @@ const blank = () => ({
 })
 const form = reactive(blank())
 
-// The built-in destinations for the currently-selected format's medium.
-const openOptions = computed(() => OPEN_OPTIONS[mediumOf(form.format)] || [])
+// Destinations for this book's medium. A plugin medium whose match rule fires
+// (e.g. a manga carrying an AniList id) wins over the format medium; Shelf stays
+// agnostic — the rule lives in the plugin. See utils/openTarget.js.
+const openMedium = computed(() => mediumOfEntry({ identifiers: form.identifiers, format: form.format }))
+const openOptions = computed(() => OPEN_OPTIONS[openMedium.value] || [])
 
 const results = ref([])
 const showDropdown = ref(false)
@@ -236,6 +239,7 @@ function submit() {
                 <div v-else class="w-8 h-11 bg-slate-200 dark:bg-slate-600 rounded shrink-0" />
                 <div class="flex-1 min-w-0">
                   <p class="text-sm text-slate-900 dark:text-white font-medium truncate">{{ r.title }}</p>
+                  <p v-if="r.subtitle" class="text-[11px] text-slate-400 dark:text-slate-500 truncate italic">{{ r.subtitle }}</p>
                   <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ (r.authors || []).join(', ') }}<span v-if="r.publishedDate"> · {{ r.publishedDate }}</span></p>
                 </div>
               </button>
@@ -323,7 +327,7 @@ function submit() {
             <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.openIn') }}</label>
             <select v-model="form.openType" class="cursor-pointer bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">{{ t('shelf.form.openUseGlobal') }}</option>
-              <option v-for="opt in openOptions" :key="opt.type" :value="opt.type">{{ t(opt.i18n) }}</option>
+              <option v-for="opt in openOptions" :key="opt.type" :value="opt.type">{{ opt.i18n ? t(opt.i18n) : opt.label }}</option>
             </select>
             <template v-if="form.openType === 'custom'">
               <input

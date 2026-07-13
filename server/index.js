@@ -7,6 +7,7 @@ import multer from 'multer'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import shelfRoutes from './routes/index.js'
+import { loadPluginProviders } from './providers/index.js'
 import { requireAppEnabled } from './core/server/appAccess.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -49,8 +50,11 @@ app.use('/api/shelf', shelfRoutes)
 
 mongoose
   .connect(process.env.MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log('[shelf] connected to MongoDB')
+    // Register any import sources contributed by installed shelf plugins (e.g.
+    // the manga-source plugin) before accepting requests.
+    await loadPluginProviders()
     app.listen(PORT, () => console.log(`[shelf] server on port ${PORT}`))
   })
   .catch((err) => {

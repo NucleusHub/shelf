@@ -44,7 +44,8 @@
       "shelf_uploads_data:/app/uploads"
     ],
     "bindMounts": [
-      "../core:/app/core:ro"
+      "../core:/app/core:ro",
+      "../plugins:/app/plugins:ro"
     ],
     "healthEndpoint": "/api/shelf/health"
   }

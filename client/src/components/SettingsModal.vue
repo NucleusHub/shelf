@@ -86,11 +86,12 @@ watch(
   { immediate: true }
 )
 
-// Two tabs — import sources vs. the per-medium "Open in" defaults. Icons are
-// SVG path strings (TemplateModal renders them inline).
+// Two tabs — the per-medium "Open in" defaults, then import sources. "Open in"
+// is first so it's the tab shown on open. Icons are SVG path strings
+// (TemplateModal renders them inline).
 const tabs = computed(() => [
-  { key: 'sources', label: t('shelf.sources.title'), icon: ICONS.search },
   { key: 'open', label: t('shelf.open.settingsTitle'), icon: ICONS.externalLink },
+  { key: 'sources', label: t('shelf.sources.title'), icon: ICONS.search },
 ])
 
 // Live preview of what "Open in" will hit, using a familiar sample book.

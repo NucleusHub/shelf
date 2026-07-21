@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti'
 import { updateBook } from '@/api/shelf.js'
 import { useLibrary } from '@/composables/useLibrary.js'
 import { useI18n } from '@core/useI18n.js'
+import { useRegistry } from '@core/useRegistry.js'
 import ContextMenu from '@core/ContextMenu.vue'
 import FavoriteHeart from '@core/FavoriteHeart.vue'
 import CoverImage from './CoverImage.vue'
@@ -14,6 +15,7 @@ import { STATUSES, STATUS_META } from '@/utils/constants.js'
 import { progressPct, authorLabel, seriesLabel } from '@/utils/format.js'
 import { useShelfSettings } from '@/composables/useShelfSettings.js'
 import { resolveTarget, buildOpenUrl } from '@/utils/openTarget.js'
+import { shelfIndicators } from '@/utils/pluginIndicators.js'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -24,8 +26,13 @@ const props = defineProps({
 const emit = defineEmits(['open', 'edit', 'delete', 'progress'])
 
 const { t } = useI18n()
+const { isPluginEnabled } = useRegistry()
 const { upsert } = useLibrary()
 const { settings } = useShelfSettings()
+
+// Plugin-contributed card badges (e.g. In Common's "others who have this book"),
+// filtered to the ones enabled for this user. Empty badges render no DOM.
+const indicators = computed(() => shelfIndicators.filter((i) => isPluginEnabled(i.pluginId)))
 
 // External "open in" destination for this entry (null for non-openable formats).
 const openUrl = computed(() => buildOpenUrl(resolveTarget(props.entry, settings.openDefaults), props.entry))
@@ -197,6 +204,18 @@ const menuItems = computed(() => [
       >
         <FavoriteHeart :active="entry.favorite" class="w-4 h-4" />
       </button>
+
+      <!-- Plugin card badges (e.g. In Common) — an absolute overlay (bottom-left)
+           so they never add to the card's height. No visible box without a match. -->
+      <div v-if="indicators.length" class="absolute bottom-1.5 left-1.5 z-10 flex">
+        <component
+          v-for="ind in indicators"
+          :key="ind.pluginId"
+          :is="ind.component"
+          :entry="entry"
+          variant="overlay"
+        />
+      </div>
 
       <!-- Progress bar overlay -->
       <div v-if="entry.status !== 'planned' && pct > 0" class="absolute bottom-0 inset-x-0 h-1 bg-black/20">

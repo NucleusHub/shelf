@@ -4,6 +4,8 @@ import { getEntry, updateBook, deleteBook } from '@/api/shelf.js'
 import { useLibrary } from '@/composables/useLibrary.js'
 import { useShelfSettings } from '@/composables/useShelfSettings.js'
 import { useI18n } from '@core/useI18n.js'
+import { useRegistry } from '@core/useRegistry.js'
+import { shelfIndicators } from '@/utils/pluginIndicators.js'
 import TemplateModal from '@core/TemplateModal.vue'
 import FavoriteHeart from '@core/FavoriteHeart.vue'
 import TrashIcon from '@core/TrashIcon.vue'
@@ -42,6 +44,10 @@ const confirmDelete = ref(false)
 const book = computed(() => entry.value?.book || {})
 const pct = computed(() => progressPct(entry.value))
 const statusMeta = computed(() => STATUS_META[entry.value?.status] || STATUS_META.planned)
+
+// Plugin-contributed badges (e.g. In Common), filtered to the ones enabled.
+const { isPluginEnabled } = useRegistry()
+const indicators = computed(() => shelfIndicators.filter((i) => isPluginEnabled(i.pluginId)))
 
 // External "open in" destination for this entry (null for non-openable formats).
 const openUrl = computed(() => (entry.value ? buildOpenUrl(resolveTarget(entry.value, settings.openDefaults), entry.value) : null))
@@ -144,6 +150,12 @@ function onNotesCount(count) {
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-xs font-medium px-2.5 py-1 rounded-full" :class="statusMeta.badge">{{ t(statusMeta.i18n) }}</span>
             <RatingControl :model-value="entry.rating" :max="settings.ratingMax" size="md" @update:modelValue="setRating" />
+            <component
+              v-for="ind in indicators"
+              :key="ind.pluginId"
+              :is="ind.component"
+              :entry="entry"
+            />
           </div>
 
           <!-- Reading progress -->

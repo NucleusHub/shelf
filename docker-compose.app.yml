@@ -39,6 +39,9 @@ services:
       nucleus.role: "app-client"
       nucleus.app: "shelf"
     environment:
+      # Host edits over the Docker VM file share (virtiofs) emit no inotify
+      # events, so Vite would keep serving stale modules — poll instead.
+      CHOKIDAR_USEPOLLING: "true"
       API_TARGET: http://shelf-server:3010
       NUCLEUS_HOST: ${NUCLEUS_HOST:-nucleus.olm-altair.ts.net}
     volumes:

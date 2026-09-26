@@ -3,8 +3,6 @@ import { ref, watch } from 'vue'
 import TemplateModal from '@core/TemplateModal.vue'
 import { useI18n } from '@core/useI18n.js'
 
-// Create/edit a single note. Content is plain text today (line breaks preserved
-// on display); the field is ready for a Markdown editor when core ships one.
 const props = defineProps({
   show: { type: Boolean, default: false },
   note: { type: Object, default: null },
@@ -27,7 +25,6 @@ async function submit() {
   if (saving.value) return
   if (!title.value.trim() && !content.value.trim()) return emit('close')
   saving.value = true
-  // Parent performs the API call; keep the modal open state simple.
   emit('save', { title: title.value.trim(), content: content.value })
 }
 </script>

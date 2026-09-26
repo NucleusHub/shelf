@@ -1,8 +1,5 @@
 import mongoose from 'mongoose'
 
-// A per-book note. `content` is stored raw; the client renders it as plain text
-// today (preserving line breaks) but the field is Markdown-ready for the day a
-// shared Markdown editor lands in core.
 const noteSchema = new mongoose.Schema(
   {
     profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', index: true },

@@ -1,10 +1,6 @@
 import { ref } from 'vue'
 import { getEntries } from '@/api/shelf.js'
 
-// Module-level singleton store for the library — the same reactive `entries`
-// array is shared by the list, the detail page and the stats page, so a change
-// made anywhere (log progress, rate, favorite, delete) is reflected everywhere
-// without prop threading or refetching. Mirrors the repo's useX() convention.
 const entries = ref([])
 const loaded = ref(false)
 const loading = ref(false)
@@ -24,7 +20,6 @@ async function load(force = false) {
   }
 }
 
-// Insert or replace an entry in place (new books go to the front).
 function upsert(entry) {
   if (!entry?.id) return
   const i = entries.value.findIndex((e) => e.id === entry.id)

@@ -3,9 +3,6 @@ import { computed } from 'vue'
 import { useI18n } from '@core/useI18n.js'
 import { computeStats } from '@/utils/stats.js'
 
-// Reading statistics, derived from the library entries + sessions. Pure display:
-// all numbers come from computeStats(). Charts are Tailwind div-bars with
-// computed widths — the repo's house style (no chart library).
 const props = defineProps({
   entries: { type: Array, default: () => [] },
   sessions: { type: Array, default: () => [] },
@@ -19,7 +16,6 @@ const year = new Date().getFullYear()
 const monthMax = computed(() => Math.max(1, ...s.value.monthly.map((m) => m.pages)))
 const monthLabel = (m) => new Date(m.year, m.month, 1).toLocaleDateString(locale.value, { month: 'short' })
 
-// Rating distribution rows, high → low, only the values that occur.
 const ratingRows = computed(() => {
   const dist = s.value.ratingDistribution
   const max = Math.max(1, ...Object.values(dist))
@@ -40,7 +36,6 @@ const tiles = computed(() => [
 
 <template>
   <div class="flex flex-col gap-4">
-    <!-- Headline tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <div v-for="tile in tiles" :key="tile.label" class="bg-white/80 dark:bg-slate-800/70 border border-white/60 dark:border-white/8 rounded-xl p-4 flex flex-col gap-1 shadow-sm dark:shadow-none">
         <p class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide leading-tight">{{ tile.label }}</p>
@@ -48,7 +43,6 @@ const tiles = computed(() => [
       </div>
     </div>
 
-    <!-- Monthly activity -->
     <div class="bg-white/80 dark:bg-slate-800/70 border border-white/60 dark:border-white/8 rounded-xl p-4 flex flex-col gap-3 shadow-sm dark:shadow-none">
       <p class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">{{ t('shelf.stats.monthlyActivity') }}</p>
       <div class="flex items-end justify-between gap-1.5 h-32">
@@ -61,7 +55,6 @@ const tiles = computed(() => [
       </div>
     </div>
 
-    <!-- Top genres + authors -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="bg-white/80 dark:bg-slate-800/70 border border-white/60 dark:border-white/8 rounded-xl p-4 flex flex-col gap-3 shadow-sm dark:shadow-none">
         <p class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">{{ t('shelf.stats.topGenres') }}</p>
@@ -92,7 +85,6 @@ const tiles = computed(() => [
       </div>
     </div>
 
-    <!-- Rating distribution -->
     <div v-if="ratingRows.length" class="bg-white/80 dark:bg-slate-800/70 border border-white/60 dark:border-white/8 rounded-xl p-4 flex flex-col gap-3 shadow-sm dark:shadow-none">
       <p class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">{{ t('shelf.stats.ratingDistribution') }}</p>
       <div class="flex flex-col gap-2">

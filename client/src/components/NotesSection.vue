@@ -9,9 +9,6 @@ import { ICONS } from '@/utils/icons.js'
 import { getNotes, createNote, updateNote, deleteNote } from '@/api/shelf.js'
 import { fmtDate } from '@/utils/format.js'
 
-// Notes for one book: list + create/edit/delete. Owns its own fetch so the
-// detail view stays lean. Emits `count` when the number of notes changes so the
-// parent can keep the entry's badge in sync.
 const props = defineProps({
   entryId: { type: String, required: true },
 })
@@ -21,7 +18,7 @@ const { t, locale } = useI18n()
 
 const notes = ref([])
 const loading = ref(true)
-const editing = ref(null)   // note being edited, or {} for a new note
+const editing = ref(null)
 const showEditor = ref(false)
 const confirmDelete = ref(null)
 

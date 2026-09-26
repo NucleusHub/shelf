@@ -1,11 +1,7 @@
-// Open Library (openlibrary.org) — the reference BookProvider implementation.
-// Free, no API key, so it's enabled by default. Maps Open Library's search and
-// ISBN responses into the common BookResult shape.
 const SEARCH_URL = 'https://openlibrary.org/search.json'
 const ISBN_URL = (isbn) => `https://openlibrary.org/isbn/${encodeURIComponent(isbn)}.json`
 const COVER = (id, size = 'L') => `https://covers.openlibrary.org/b/id/${id}-${size}.jpg`
 
-// Fields we ask the search endpoint for — keeps the payload small.
 const FIELDS = [
   'key', 'title', 'subtitle', 'author_name', 'first_publish_year',
   'number_of_pages_median', 'cover_i', 'isbn', 'language', 'publisher', 'subject',
@@ -62,7 +58,6 @@ export default class OpenLibraryProvider {
       title: d.title || '',
       subtitle: d.subtitle || '',
       authors: d.author_name || [],
-      // Open Library subjects are noisy; take a few as loose genres.
       genres: (d.subject || []).slice(0, 5),
       language: (d.language || [])[0] || '',
       publisher: (d.publisher || [])[0] || '',

@@ -23,10 +23,7 @@ export default defineConfig(({ mode }) => ({
   css: {
     transformer: 'lightningcss',
     lightningcss: {
-      // Concrete versions so Lightning CSS actually vendor-prefixes (e.g. adds
-      // -webkit-backdrop-filter for Safari while keeping the standard property
-      // for Firefox/Chrome). Open-ended ranges resolve to an empty target set,
-      // which silently disables prefixing and drops the glass blur in prod.
+      // Concrete versions: open-ended ranges resolve to no targets and silently disable prefixing.
       targets: {
         safari: (15 << 16) | (4 << 8),
         ios_saf: (15 << 16) | (4 << 8),
@@ -42,8 +39,6 @@ export default defineConfig(({ mode }) => ({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@core': fileURLToPath(new URL('./core', import.meta.url)),
-      // Shared widget package (via the ./widgets symlink → repo /widgets), so
-      // core/AuthGuard's @widgets-core import resolves and Pulse widgets can float here.
       '@widgets-core': fileURLToPath(new URL('./widgets/core', import.meta.url)),
     },
   },
@@ -51,13 +46,11 @@ export default defineConfig(({ mode }) => ({
     host: '0.0.0.0',
     port: 5181,
     proxy: {
-      // Pulse state (widgets opting in to show here). Must precede the '/api'
-      // catch-all so it routes to Pulse, not the shelf server. Dev-only; prod
-      // nginx routes /api/pulse centrally.
       '/api/pulse': {
         target: process.env.PULSE_TARGET || 'http://localhost:3004',
         changeOrigin: true,
       },
+      // Must follow '/api/pulse' so Pulse requests aren't caught here.
       '/api': {
         target: process.env.API_TARGET || 'http://localhost:3010',
         changeOrigin: true,

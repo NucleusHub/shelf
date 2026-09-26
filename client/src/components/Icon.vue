@@ -1,9 +1,4 @@
 <script setup>
-// Renders one of the shared icon paths from utils/icons.js:
-//   <Icon :d="ICONS.search" class="w-4 h-4" />
-// `d` may be a single path string or an array (multi-path glyphs). Stroke icons
-// by default; pass :fill for solid glyphs (star, kebab). Size/colour come from
-// the class on the element (currentColor), like the app's other icons.
 import { computed } from 'vue'
 
 const props = defineProps({

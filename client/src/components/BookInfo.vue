@@ -3,9 +3,6 @@ import { computed } from 'vue'
 import { useI18n } from '@core/useI18n.js'
 import { FORMAT_META } from '@/utils/constants.js'
 
-// Metadata display for the detail page — a clean two-column definition list plus
-// the description. Only rows with a value are shown, so it never reads as a wall
-// of empty fields.
 const props = defineProps({
   entry: { type: Object, required: true },
 })

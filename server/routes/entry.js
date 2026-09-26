@@ -1,8 +1,3 @@
-// Shared shaping between the two collections (Book + LibraryItem) and the flat
-// "entry" the client consumes. Keeping this in one place means every route
-// returns an identically-shaped entry, and the field lists below are the single
-// source of truth for what a client may write to each collection.
-
 export const BOOK_FIELDS = [
   'title', 'subtitle', 'description', 'authors', 'series', 'genres', 'language',
   'publisher', 'publishedDate', 'pageCount', 'coverUrl', 'isbn', 'identifiers',
@@ -13,16 +8,12 @@ export const ITEM_FIELDS = [
   'startedReading', 'finishedReading',
 ]
 
-// Copy only the allowed, actually-present keys — drops junk and prevents a
-// client from writing profileId/notesCount/etc. directly.
 export function pick(obj = {}, fields) {
   const out = {}
   for (const f of fields) if (obj[f] !== undefined) out[f] = obj[f]
   return out
 }
 
-// A populated LibraryItem → the flat entry. `item.book` is a Book document
-// (populated) or may be null if the book was somehow removed.
 export function toEntry(item) {
   const b = item.book && typeof item.book === 'object' ? item.book : null
   return {

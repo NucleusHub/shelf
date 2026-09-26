@@ -28,8 +28,6 @@ const { open: settingsOpen, openSettings, closeSettings } = useSettingsModal()
 
 const sidebarOpen = ref(false)
 
-// Statistics is an inline toggle (like watchlist), not a route. Sessions are
-// fetched lazily the first time stats is opened.
 const showStats = ref(false)
 const sessions = ref([])
 let statsLoaded = false
@@ -41,11 +39,9 @@ async function toggleStats() {
   }
 }
 
-// View (grid/list) — remembered locally, seeded from the user's default.
 const view = ref(localStorage.getItem('shelf-view') || settings.defaultView || 'grid')
 watch(view, (v) => localStorage.setItem('shelf-view', v))
 
-// ── Filters / sort / search ──────────────────────────────────────────────────
 const activeStatus = ref('all')
 const filterGenre = ref('')
 const filterAuthor = ref('')
@@ -61,23 +57,18 @@ const STATUS_TABS = computed(() => [
   ...STATUSES.map((s) => ({ key: s, label: t(STATUS_META[s].i18n) })),
 ])
 
-// Facet option lists, derived from the library so filters only offer real values.
 const genreOptions = computed(() => uniqueSorted(entries.value.flatMap((e) => e.book?.genres || [])))
 const authorOptions = computed(() => uniqueSorted(entries.value.flatMap((e) => e.book?.authors || [])))
 function uniqueSorted(list) {
   return [...new Set(list.map((x) => String(x).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b))
 }
 
-// Watchlist-style sort: click an icon to sort by it (natural direction), click
-// the active one again to flip the direction.
 const SORT_DEFAULT_DIR = Object.fromEntries(SORTS.map((s) => [s.key, s.dir]))
 function toggleSort(key) {
   if (sortBy.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   else { sortBy.value = key; sortDir.value = SORT_DEFAULT_DIR[key] || 'asc' }
 }
 
-// Shared styling for the filter chips (selects + toggles) so the toolbar reads
-// as one consistent set of controls.
 const CHIP_BASE = 'rounded-lg py-1.5 text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40'
 const CHIP_IDLE = 'bg-white/70 dark:bg-white/8 border-white/70 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/12'
 const CHIP_ACTIVE = 'bg-indigo-50 dark:bg-indigo-500/15 border-indigo-300 dark:border-indigo-400/30 text-indigo-700 dark:text-indigo-300'
@@ -102,10 +93,9 @@ const filtered = computed(() => {
   return [...base].sort((a, b) => cmp(a, b) * dir)
 })
 
-// Milliseconds for a date, or 0 for missing/invalid — a comparator must never
-// return NaN (it makes Array.sort ordering undefined for the whole list).
 function time(v) {
   const t = new Date(v).getTime()
+  // A comparator must never return NaN.
   return Number.isNaN(t) ? 0 : t
 }
 
@@ -136,7 +126,6 @@ const gridClass = computed(() =>
     : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
 )
 
-// ── Modals ───────────────────────────────────────────────────────────────────
 const showForm = ref(false)
 const editing = ref(null)
 const formResetKey = ref(0)
@@ -159,7 +148,6 @@ async function submitForm({ book, item }) {
 
 function openProgress(entry) { progressEntry.value = entry; showProgress.value = true }
 
-// Book detail opens as an overlay (not a page).
 const detailId = ref(null)
 const showDetail = ref(false)
 function openDetail(entry) { detailId.value = entry.id; showDetail.value = true }
@@ -174,8 +162,6 @@ async function doDelete() {
     remove(entry.id)
     confirmDeleteEntry.value = null
   } catch {
-    // Keep the confirm dialog open and the book in the list if the delete failed,
-    // rather than optimistically removing it and swallowing the error.
   } finally {
     deleting.value = false
   }
@@ -203,7 +189,6 @@ onMounted(load)
         </template>
 
         <template #right>
-          <!-- Search -->
           <div class="relative">
             <Icon :d="ICONS.search" sw="2" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
             <input
@@ -234,9 +219,7 @@ onMounted(load)
       <main class="max-w-6xl mx-auto px-4 py-6 flex flex-col gap-5">
         <ShelfStats v-if="showStats" :entries="entries" :sessions="sessions" :rating-max="settings.ratingMax" />
         <template v-else>
-        <!-- Toolbar: one cohesive liquid-glass control bar -->
         <div class="glass rounded-2xl p-2 flex flex-col gap-2.5">
-          <!-- Status segmented control + result count -->
           <div class="flex items-center gap-3">
             <div class="min-w-0 flex-1 overflow-x-auto no-scrollbar">
               <div class="inline-flex items-center gap-0.5 bg-black/[0.04] dark:bg-white/5 rounded-xl p-1">
@@ -262,7 +245,6 @@ onMounted(load)
 
           <div class="h-px bg-black/[0.06] dark:bg-white/8 -mx-2" />
 
-          <!-- Filters (left) · sort + view (right) -->
           <div class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-center gap-1.5 flex-wrap">
               <div class="relative">
@@ -313,7 +295,6 @@ onMounted(load)
             </div>
 
             <div class="flex items-center gap-1.5 shrink-0">
-              <!-- Sort: icon buttons; active shows the direction caret inline -->
               <div class="flex items-center gap-0.5">
                 <button
                   v-for="s in SORTS"
@@ -326,7 +307,6 @@ onMounted(load)
                   <Icon v-if="sortBy === s.key" :d="sortDir === 'asc' ? ICONS.caretUp : ICONS.caretDown" sw="3" class="w-2.5 h-2.5" />
                 </button>
               </div>
-              <!-- View toggle (segmented) -->
               <div class="flex items-center h-9 bg-black/[0.05] dark:bg-white/5 rounded-lg p-1 gap-0.5">
                 <button @click="view = 'grid'" :title="t('shelf.list.grid')" :class="['cursor-pointer h-full px-2.5 rounded-md inline-flex items-center transition-colors', view === 'grid' ? 'text-indigo-600 dark:text-white bg-white dark:bg-white/15 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white']">
                   <Icon :d="ICONS.viewGrid" sw="2" class="w-4 h-4" />
@@ -339,14 +319,12 @@ onMounted(load)
           </div>
         </div>
 
-        <!-- States -->
         <div v-if="loading" class="text-center py-20 text-slate-400 dark:text-slate-500">{{ t('shelf.state.loading') }}</div>
         <div v-else-if="error" class="text-center py-20">
           <p class="text-red-400 text-sm">{{ t('shelf.state.loadError') }}</p>
           <button @click="load(true)" class="cursor-pointer mt-3 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline">{{ t('shelf.state.retry') }}</button>
         </div>
 
-        <!-- Empty library -->
         <div v-else-if="!entries.length" class="text-center py-20 flex flex-col items-center gap-4">
           <div class="w-16 h-16 rounded-2xl bg-indigo-600/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
             <Icon :d="ICONS.book" sw="1.5" class="w-8 h-8" />
@@ -358,13 +336,11 @@ onMounted(load)
           <button @click="openAdd" class="nuc-press cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">{{ t('shelf.empty.cta') }}</button>
         </div>
 
-        <!-- No matches -->
         <div v-else-if="!filtered.length" class="text-center py-20 text-slate-400 dark:text-slate-500">
           <p class="text-sm">{{ t('shelf.empty.noMatches') }}</p>
           <button @click="clearFilters" class="cursor-pointer mt-3 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">{{ t('shelf.filter.clear') }}</button>
         </div>
 
-        <!-- Grid / list -->
         <div v-else class="grid gap-3 nuc-stagger" :class="gridClass" style="--nuc-step: 26ms">
           <BookCard
             v-for="entry in filtered"

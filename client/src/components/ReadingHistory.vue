@@ -8,8 +8,6 @@ import { getBookSessions, deleteSession } from '@/api/shelf.js'
 import { useLibrary } from '@/composables/useLibrary.js'
 import { fmtDate, fmtDuration } from '@/utils/format.js'
 
-// Reading history for one book: the list of logged sessions, newest first, with
-// delete. Reloadable from the parent (a new session bumps `refreshKey`).
 const props = defineProps({
   entryId: { type: String, required: true },
   refreshKey: { type: Number, default: 0 },

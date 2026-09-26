@@ -21,7 +21,6 @@ app.use(express.json())
 app.use(cookieParser())
 app.use('/uploads', express.static(uploadsDir))
 
-// Cover-image uploads. Small size cap — covers are thumbnails, not scans.
 const storage = multer.diskStorage({
   destination: uploadsDir,
   filename: (req, file, cb) => {
@@ -44,7 +43,6 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 })
 
 app.get('/api/shelf/health', (_, res) => res.json({ ok: true }))
-// Refuse all Shelf API access for users who have Shelf disabled (admin override).
 app.use('/api/shelf', requireAppEnabled('shelf'))
 app.use('/api/shelf', shelfRoutes)
 
@@ -52,8 +50,6 @@ mongoose
   .connect(process.env.MONGODB_URI)
   .then(async () => {
     console.log('[shelf] connected to MongoDB')
-    // Register any import sources contributed by installed shelf plugins (e.g.
-    // the manga-source plugin) before accepting requests.
     await loadPluginProviders()
     app.listen(PORT, () => console.log(`[shelf] server on port ${PORT}`))
   })

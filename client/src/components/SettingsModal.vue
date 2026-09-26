@@ -17,21 +17,12 @@ const emit = defineEmits(['close'])
 
 const { settings, update, setOpenDefault } = useShelfSettings()
 
-// Installed plugins → names, so plugin-contributed UI can name its source in a
-// tooltip ("Added by the … plugin"). Purely for the badge; loaded once.
 const { plugins: installedPlugins, load: loadInstalledPlugins } = usePlugins()
 onMounted(loadInstalledPlugins)
 const pluginName = (id) => installedPlugins.value.find((p) => p.id === id)?.name || id
-// Puzzle-piece glyph for the "this was added by a plugin" badge (Heroicons).
 const PLUGIN_ICON = 'M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.4 48.4 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.036 1.007-1.875 2.25-1.875s2.25.84 2.25 1.875c0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 0 0 .658-.663 48.422 48.422 0 0 0-.37-5.36c-1.676.32-3.4.475-5.157.475a.64.64 0 0 1-.657-.643Z'
 
-// ── Import sources ───────────────────────────────────────────────────────────
-// The metadata providers searched when adding a book. Some are contributed by
-// plugins (p.pluginId) — those are hidden when their plugin is disabled, so
-// turning off the manga-source plugin in Profile → Plugins removes it here too.
 const providers = ref([])
-// Two drafts, committed on Save. Built-in sources are opt-in (`enabled`); plugin
-// sources are on by default and opt-OUT (`hidden`) — matching the server.
 const enabledProviderIds = ref([])
 const hiddenProviderIds = ref([])
 
@@ -44,29 +35,22 @@ const isSourceOn = (p) =>
 function toggleSource(p) {
   if (!p.available) return
   if (p.pluginId) {
-    // opt-out: on = absent from hidden
     const s = new Set(hiddenProviderIds.value)
     s.has(p.id) ? s.delete(p.id) : s.add(p.id)
     hiddenProviderIds.value = [...s]
   } else {
-    // opt-in: on = present in enabled
     const s = new Set(enabledProviderIds.value)
     s.has(p.id) ? s.delete(p.id) : s.add(p.id)
     enabledProviderIds.value = [...s]
   }
 }
 
-// One section per medium (openTarget.OPEN_MEDIUMS = built-ins + whatever plugins
-// contribute). Built-ins carry an i18n label; plugin mediums carry a literal
-// label + pluginId, are shown only while that plugin is enabled, and get a
-// badge. Icons keep sections scannable; unknown mediums fall back to the book icon.
 const ICON_FOR = { book: ICONS.book, audio: ICONS.audiobook }
 const KINDS = computed(() =>
   OPEN_MEDIUMS
     .filter((m) => !m.pluginId || isPluginEnabled(m.pluginId))
     .map((m) => ({ key: m.id, i18n: m.i18n, label: m.label, icon: ICON_FOR[m.id] || ICONS.book, plugin: m.pluginId })))
 
-// Edit a local draft so a Cancel/close leaves the saved defaults untouched.
 const blank = (kind) => ({ type: DEFAULT_TYPE[kind] || 'custom', customUrl: '', titleFormat: 'raw' })
 const draft = reactive(Object.fromEntries(OPEN_MEDIUMS.map((m) => [m.id, blank(m.id)])))
 
@@ -78,7 +62,6 @@ watch(
       const d = settings.openDefaults[key] || blank(key)
       draft[key] = { type: d.type, customUrl: d.customUrl || '', titleFormat: d.titleFormat || 'raw' }
     }
-    // Seed the import-source drafts from the saved sets, then refresh the list.
     enabledProviderIds.value = [...(settings.providers || ['openlibrary'])]
     hiddenProviderIds.value = [...(settings.hiddenProviders || [])]
     getProviders().then((list) => { providers.value = Array.isArray(list) ? list : [] }).catch(() => {})
@@ -86,21 +69,16 @@ watch(
   { immediate: true }
 )
 
-// Two tabs — the per-medium "Open in" defaults, then import sources. "Open in"
-// is first so it's the tab shown on open. Icons are SVG path strings
-// (TemplateModal renders them inline).
 const tabs = computed(() => [
   { key: 'open', label: t('shelf.open.settingsTitle'), icon: ICONS.externalLink },
   { key: 'sources', label: t('shelf.sources.title'), icon: ICONS.search },
 ])
 
-// Live preview of what "Open in" will hit, using a familiar sample book.
 const SAMPLE = { book: { title: 'The Hobbit', authors: ['J.R.R. Tolkien'] } }
 const previewUrl = (kind) => buildOpenUrl(draft[kind], SAMPLE)
 
 function save() {
   for (const { key } of KINDS.value) setOpenDefault(key, draft[key])
-  // Persist both import-source drafts (built-in opt-ins + plugin opt-outs).
   update({ providers: [...enabledProviderIds.value], hiddenProviders: [...hiddenProviderIds.value] })
   emit('close')
 }
@@ -122,7 +100,6 @@ function save() {
     @cancel="emit('close')"
   >
     <template #default="{ activeTab }">
-    <!-- ── Import sources tab ─────────────────────────────────────────────── -->
     <div v-show="activeTab === 'sources'" class="flex flex-col gap-3 rounded-xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03] p-4">
       <div>
         <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('shelf.sources.title') }}</span>
@@ -157,7 +134,6 @@ function save() {
       </ul>
     </div>
 
-    <!-- ── Open in tab ────────────────────────────────────────────────────── -->
     <div v-show="activeTab === 'open'" class="flex flex-col gap-4">
       <p class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.open.settingsDesc') }}</p>
 
@@ -166,7 +142,6 @@ function save() {
         :key="kind.key"
         class="flex flex-col gap-3 rounded-xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03] p-4"
       >
-        <!-- Section header -->
         <div class="flex items-center gap-2.5">
           <span class="grid place-items-center w-8 h-8 rounded-lg bg-indigo-600/10 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400 shrink-0">
             <Icon :d="kind.icon" sw="1.75" class="w-4 h-4" />
@@ -181,7 +156,6 @@ function save() {
           </span>
         </div>
 
-        <!-- Destination chips -->
         <div class="flex flex-wrap gap-1.5">
           <button
             v-for="opt in OPEN_OPTIONS[kind.key]"
@@ -199,7 +173,6 @@ function save() {
           </button>
         </div>
 
-        <!-- Custom URL config — nested panel so it reads as part of the section -->
         <div
           v-if="draft[kind.key].type === 'custom'"
           class="flex flex-col gap-2.5 rounded-lg bg-black/[0.03] dark:bg-black/20 border border-black/5 dark:border-white/10 p-3"

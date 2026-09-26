@@ -16,8 +16,6 @@ function requireAdmin(req, res, next) {
   next()
 }
 
-// POST /users/:userId/teardown — called by the admin panel when a user is
-// deleted: purge all of their Shelf data and any locally-uploaded covers.
 router.post('/users/:userId/teardown', requireAdmin, async (req, res) => {
   try {
     const books = await Book.find({ profileId: req.params.userId }).select('coverUrl')

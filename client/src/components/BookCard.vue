@@ -19,10 +19,9 @@ import { shelfIndicators } from '@/utils/pluginIndicators.js'
 
 const props = defineProps({
   entry: { type: Object, required: true },
-  view: { type: String, default: 'grid' }, // grid | list
+  view: { type: String, default: 'grid' },
   ratingMax: { type: Number, default: 10 },
 })
-// Parent owns the detail modal + the edit/delete/progress modals.
 const emit = defineEmits(['open', 'edit', 'delete', 'progress'])
 
 const { t } = useI18n()
@@ -30,18 +29,12 @@ const { isPluginEnabled } = useRegistry()
 const { upsert } = useLibrary()
 const { settings } = useShelfSettings()
 
-// Plugin-contributed card badges (e.g. In Common's "others who have this book"),
-// filtered to the ones enabled for this user. Empty badges render no DOM.
 const indicators = computed(() => shelfIndicators.filter((i) => isPluginEnabled(i.pluginId)))
 
-// External "open in" destination for this entry (null for non-openable formats).
 const openUrl = computed(() => buildOpenUrl(resolveTarget(props.entry, settings.openDefaults), props.entry))
 function openExternal() {
   if (openUrl.value) window.open(openUrl.value, '_blank', 'noopener,noreferrer')
 }
-// Poster / title click: open the configured external page when there is one,
-// otherwise fall back to the detail modal (physical books / no target). The
-// detail modal always has its own way in — the ⓘ button and the context menu.
 function primary() {
   if (openUrl.value) openExternal()
   else emit('open', props.entry)
@@ -72,7 +65,6 @@ const markFinished = () => patchItem(
 )
 const toggleFavorite = () => patchItem({ favorite: !props.entry.favorite })
 
-// Bottom badge: cycle through the statuses in order (like watchlist).
 function cycleStatus() {
   const next = STATUSES[(STATUSES.indexOf(props.entry.status) + 1) % STATUSES.length]
   const item = { status: next }
@@ -96,13 +88,11 @@ function fireConfetti() {
   })
 }
 
-// ── Context menu ─────────────────────────────────────────────────────────────
 const menu = ref({ show: false, x: 0, y: 0 })
 function openMenu(e) {
-  // Keyboard activation (Enter/Space) reports clientX/Y as 0 — anchor to the
-  // button instead of flinging the menu to the viewport corner.
   let x = e.clientX
   let y = e.clientY
+  // Keyboard activation reports clientX/Y as 0; anchor to the button instead.
   if (!x && !y && e.currentTarget?.getBoundingClientRect) {
     const r = e.currentTarget.getBoundingClientRect()
     x = r.right
@@ -130,8 +120,6 @@ const menuItems = computed(() => [
     :class="[statusMeta.card, isList ? 'flex flex-row' : 'flex flex-col']"
     @contextmenu.prevent="openMenu"
   >
-    <!-- Cover — click opens the configured external page (or the detail modal
-         when the book has no external target). -->
     <div
       class="group/poster relative shrink-0 overflow-hidden cursor-pointer"
       :class="isList ? 'w-16 sm:w-20 self-stretch' : 'w-full'"
@@ -140,7 +128,6 @@ const menuItems = computed(() => [
     >
       <CoverImage :src="book.coverUrl" :alt="book.title" :fill="isList" />
 
-      <!-- Open-in-external affordance — reveals on poster hover (desktop only) -->
       <div
         v-if="openUrl"
         class="pointer-events-none absolute inset-0 hidden sm:flex items-center justify-center bg-black/0 group-hover/poster:bg-black/30 transition-colors"
@@ -148,10 +135,6 @@ const menuItems = computed(() => [
         <Icon :d="ICONS.externalLink" sw="2" class="w-5 h-5 text-white opacity-0 group-hover/poster:opacity-100 transition-opacity drop-shadow" />
       </div>
 
-      <!-- Details button — the dedicated way into the detail modal now that the
-           poster opens externally. Hover-revealed on desktop, always on mobile.
-           Hidden in list view, where the tiny cover is already crowded and the
-           kebab menu's "Details" is right there. -->
       <button
         v-if="!isList"
         type="button"
@@ -162,8 +145,6 @@ const menuItems = computed(() => [
         <Icon :d="ICONS.info" sw="2" class="w-4 h-4" />
       </button>
 
-      <!-- Corner status check (top-left), like watchlist -->
-      <!-- finished → solid green, always shown -->
       <div
         v-if="entry.status === 'finished'"
         class="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-green-500 shadow-md flex items-center justify-center"
@@ -171,7 +152,6 @@ const menuItems = computed(() => [
       >
         <Icon :d="ICONS.check" sw="3" class="w-3.5 h-3.5 text-white" />
       </div>
-      <!-- reading → blue badge always shown; swaps to check on hover -->
       <button
         v-else-if="entry.status === 'reading'"
         @click.stop="markFinished"
@@ -182,7 +162,6 @@ const menuItems = computed(() => [
         <Icon :d="ICONS.book" sw="2" class="w-3.5 h-3.5 text-white group-hover/chk:hidden" />
         <Icon :d="ICONS.check" sw="3" class="w-3.5 h-3.5 text-white hidden group-hover/chk:block" />
       </button>
-      <!-- planned / on_hold → outline check, hover-reveal; click marks finished -->
       <button
         v-else
         @click.stop="markFinished"
@@ -193,7 +172,6 @@ const menuItems = computed(() => [
         <Icon :d="ICONS.check" sw="3" class="w-3.5 h-3.5" />
       </button>
 
-      <!-- Favorite heart (top-right) -->
       <button
         type="button"
         @click.stop="toggleFavorite"
@@ -205,8 +183,6 @@ const menuItems = computed(() => [
         <FavoriteHeart :active="entry.favorite" class="w-4 h-4" />
       </button>
 
-      <!-- Plugin card badges (e.g. In Common) — an absolute overlay (bottom-left)
-           so they never add to the card's height. No visible box without a match. -->
       <div v-if="indicators.length" class="absolute bottom-1.5 left-1.5 z-10 flex">
         <component
           v-for="ind in indicators"
@@ -217,13 +193,11 @@ const menuItems = computed(() => [
         />
       </div>
 
-      <!-- Progress bar overlay -->
       <div v-if="entry.status !== 'planned' && pct > 0" class="absolute bottom-0 inset-x-0 h-1 bg-black/20">
         <div class="h-full transition-all duration-300" :class="entry.status === 'finished' ? 'bg-green-500' : 'bg-indigo-500'" :style="{ width: `${pct}%` }" />
       </div>
     </div>
 
-    <!-- Content -->
     <div class="flex-1 min-w-0 flex flex-col gap-1.5 p-3">
       <div class="flex items-start justify-between gap-1.5">
         <div class="min-w-0">
@@ -251,7 +225,6 @@ const menuItems = computed(() => [
       <RatingControl v-if="entry.rating" :model-value="entry.rating" :max="ratingMax" readonly compact size="sm" class="mt-0.5" />
 
       <div class="flex items-center gap-1.5 flex-wrap mt-auto pt-1">
-        <!-- Clickable status badge — cycles status -->
         <button
           type="button"
           @click.stop="cycleStatus"

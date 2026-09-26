@@ -4,14 +4,12 @@ import Note from '../models/Note.js'
 
 const router = Router()
 
-// Keep the denormalised notesCount on the item honest after every mutation.
 async function syncCount(itemId) {
   const count = await Note.countDocuments({ item: itemId })
   await LibraryItem.updateOne({ _id: itemId }, { $set: { notesCount: count } })
   return count
 }
 
-// GET /books/:id/notes — a book's notes, newest first.
 router.get('/books/:id/notes', async (req, res) => {
   try {
     const item = await LibraryItem.findOne({ _id: req.params.id, profileId: req.profile.profileId }).select('_id')
@@ -23,7 +21,6 @@ router.get('/books/:id/notes', async (req, res) => {
   }
 })
 
-// POST /books/:id/notes — add a note.
 router.post('/books/:id/notes', async (req, res) => {
   try {
     const item = await LibraryItem.findOne({ _id: req.params.id, profileId: req.profile.profileId })
@@ -42,7 +39,6 @@ router.post('/books/:id/notes', async (req, res) => {
   }
 })
 
-// PATCH /notes/:nid — edit a note's title/content.
 router.patch('/notes/:nid', async (req, res) => {
   try {
     const update = {}
@@ -60,7 +56,6 @@ router.patch('/notes/:nid', async (req, res) => {
   }
 })
 
-// DELETE /notes/:nid — remove a note.
 router.delete('/notes/:nid', async (req, res) => {
   try {
     const note = await Note.findOneAndDelete({ _id: req.params.nid, profileId: req.profile.profileId })

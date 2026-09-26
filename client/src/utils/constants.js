@@ -1,16 +1,11 @@
 import { ICONS } from './icons.js'
 
-// Shared, presentation-only metadata for the enumerated fields. Colours and
-// icons live here (not scattered through components) so status/format read
-// identically everywhere. Labels are i18n keys resolved with t() at the call site.
-
 export const STATUSES = ['planned', 'reading', 'on_hold', 'finished']
 
 export const STATUS_META = {
   planned: {
     i18n: 'shelf.status.planned',
     badge: 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
-    // Card accent when an entry has this status.
     card: 'bg-white/70 dark:bg-slate-800/70 border border-white/60 dark:border-white/8',
     accent: 'text-slate-500',
   },
@@ -36,7 +31,6 @@ export const STATUS_META = {
 
 export const FORMATS = ['physical', 'ebook', 'audiobook', 'eaudiobook']
 
-// Format glyphs come from the shared icon map.
 export const FORMAT_META = {
   physical: { i18n: 'shelf.format.physical', icon: ICONS.book },
   ebook: { i18n: 'shelf.format.ebook', icon: ICONS.ebook },
@@ -44,8 +38,6 @@ export const FORMAT_META = {
   eaudiobook: { i18n: 'shelf.format.eaudiobook', icon: ICONS.eaudiobook },
 }
 
-// Sort keys with their default direction (applied when first selected) and the
-// icon shown in the watchlist-style sort button row.
 export const SORTS = [
   { key: 'title', i18n: 'shelf.sort.title', dir: 'asc', icon: ICONS.sortTitle },
   { key: 'author', i18n: 'shelf.sort.author', dir: 'asc', icon: ICONS.sortAuthor },

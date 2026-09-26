@@ -22,8 +22,6 @@ import { STATUS_META } from '@/utils/constants.js'
 import { progressPct, authorLabel, seriesLabel, fmtDate } from '@/utils/format.js'
 import { resolveTarget, buildOpenUrl } from '@/utils/openTarget.js'
 
-// The book detail as an overlay (not a page). Sub-modals (progress, edit, note
-// editor, delete) render at the default z-[200], above this modal's z-[150].
 const props = defineProps({
   show: { type: Boolean, default: false },
   entryId: { type: String, default: null },
@@ -45,11 +43,9 @@ const book = computed(() => entry.value?.book || {})
 const pct = computed(() => progressPct(entry.value))
 const statusMeta = computed(() => STATUS_META[entry.value?.status] || STATUS_META.planned)
 
-// Plugin-contributed badges (e.g. In Common), filtered to the ones enabled.
 const { isPluginEnabled } = useRegistry()
 const indicators = computed(() => shelfIndicators.filter((i) => isPluginEnabled(i.pluginId)))
 
-// External "open in" destination for this entry (null for non-openable formats).
 const openUrl = computed(() => (entry.value ? buildOpenUrl(resolveTarget(entry.value, settings.openDefaults), entry.value) : null))
 function openExternal() {
   if (openUrl.value) window.open(openUrl.value, '_blank', 'noopener,noreferrer')
@@ -57,11 +53,11 @@ function openExternal() {
 
 watch(() => props.show, async (v) => {
   if (!v) return
-  entry.value = getById(props.entryId)     // instant seed from the store
+  entry.value = getById(props.entryId)
   loading.value = !entry.value
   try {
     entry.value = await getEntry(props.entryId)
-  } catch { /* keep the seed */ } finally {
+  } catch {} finally {
     loading.value = false
   }
 })
@@ -117,7 +113,6 @@ function onNotesCount(count) {
     <div v-if="loading && !entry" class="py-16 text-center text-slate-400 dark:text-slate-500">{{ t('shelf.state.loading') }}</div>
 
     <div v-else-if="entry" class="flex flex-col gap-7">
-      <!-- Header block -->
       <div class="flex flex-col sm:flex-row gap-5">
         <div class="w-32 sm:w-40 shrink-0 mx-auto sm:mx-0">
           <div class="rounded-xl overflow-hidden shadow-lg shadow-slate-900/10 dark:shadow-black/40 ring-1 ring-black/5 dark:ring-white/10">
@@ -158,7 +153,6 @@ function onNotesCount(count) {
             />
           </div>
 
-          <!-- Reading progress -->
           <div class="flex flex-col gap-2 rounded-xl bg-white/60 dark:bg-slate-800/50 border border-white/60 dark:border-white/8 p-4">
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 dark:text-slate-400">
@@ -196,7 +190,6 @@ function onNotesCount(count) {
       <ReadingHistory ref="historyRef" :entry-id="entry.id" />
     </div>
 
-    <!-- Sub-modals (render above this one) -->
     <ProgressSheet :show="showProgress" :entry="entry" @close="showProgress = false" @logged="onProgressLogged" />
     <BookFormModal :show="showEdit" :initial="entry" @close="showEdit = false" @submit="submitEdit" />
     <TemplateModal

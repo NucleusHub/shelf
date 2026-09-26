@@ -1,9 +1,4 @@
 <script setup>
-// Star rating on a 0.5..max scale (max is the app's fixed 10-point scale).
-// Supports half stars: each star has two hit zones — the left half sets
-// n-0.5, the right half sets n. Interactive by default (hover preview, click to
-// set, click the current value again to clear); pass :readonly for a static
-// display. Keyboard-operable: each half is a focusable button (Enter/Space).
 import { ref, computed } from 'vue'
 import Icon from './Icon.vue'
 import { ICONS } from '@/utils/icons.js'
@@ -15,10 +10,8 @@ const props = defineProps({
   modelValue: { type: Number, default: null },
   max: { type: Number, default: 10 },
   readonly: { type: Boolean, default: false },
-  size: { type: String, default: 'md' }, // sm | md | lg
+  size: { type: String, default: 'md' },
   showValue: { type: Boolean, default: true },
-  // Space-saving readonly display: one filled star + "value/max". Used on the
-  // library cards, where a full 10-star row would overflow the grid tile.
   compact: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue'])
@@ -28,7 +21,6 @@ const clearLabel = computed(() => t('shelf.form.clearRating'))
 const shown = computed(() => hover.value || props.modelValue || 0)
 const sizeClass = computed(() => ({ sm: 'w-3.5 h-3.5', md: 'w-5 h-5', lg: 'w-7 h-7' }[props.size]))
 
-// Percentage of star n (1..max) to fill given the shown value: full, half, empty.
 function fill(n) {
   const v = shown.value
   if (v >= n) return 100
@@ -43,7 +35,6 @@ function set(v) {
 </script>
 
 <template>
-  <!-- Compact readonly: single star + value, for tight spaces (cards). -->
   <div v-if="compact" class="inline-flex items-center gap-1">
     <Icon :d="ICONS.star" fill :class="[sizeClass, 'text-amber-400']" />
     <span class="text-sm font-medium text-slate-600 dark:text-slate-300 tabular-nums">{{ modelValue }}<span class="text-slate-400 dark:text-slate-500">/{{ max }}</span></span>
@@ -56,17 +47,14 @@ function set(v) {
         class="relative inline-flex"
         :class="[sizeClass, readonly ? '' : 'transition-transform hover:scale-110']"
       >
-        <!-- Empty base -->
         <Icon
           :d="ICONS.star"
           sw="1.5"
           :class="[sizeClass, 'text-slate-300 dark:text-slate-600']"
         />
-        <!-- Filled overlay, clipped to the fill fraction -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none" :style="{ width: fill(n) + '%' }">
           <Icon :d="ICONS.star" fill :class="[sizeClass, 'max-w-none text-amber-400']" />
         </div>
-        <!-- Half-star hit zones (interactive only) -->
         <template v-if="!readonly">
           <button
             type="button"

@@ -12,13 +12,9 @@ import { useShelfSettings } from '@/composables/useShelfSettings.js'
 import { STATUSES, STATUS_META, FORMATS, FORMAT_META } from '@/utils/constants.js'
 import { OPEN_OPTIONS, TITLE_FORMATS, mediumOfEntry } from '@/utils/openTarget.js'
 
-// Add or edit a book. Title doubles as a metadata search box (typeahead over the
-// enabled import providers) — pick a result to autofill everything, or just type
-// and fill fields by hand. Cover can come from the search result, a file upload,
-// or a pasted URL.
 const props = defineProps({
   show: { type: Boolean, default: false },
-  initial: { type: Object, default: null },  // an entry (edit) or null (add)
+  initial: { type: Object, default: null },
   resetKey: { type: Number, default: 0 },
 })
 const emit = defineEmits(['close', 'submit'])
@@ -27,7 +23,6 @@ const { t } = useI18n()
 const { settings } = useShelfSettings()
 const ratingMax = computed(() => settings.ratingMax)
 
-// Flat working copy; joined list fields (authors/genres) edited as text.
 const blank = () => ({
   title: '', subtitle: '', description: '',
   authorsText: '', seriesName: '', seriesPos: '',
@@ -35,14 +30,10 @@ const blank = () => ({
   pageCount: '', coverUrl: null, isbn: '', identifiers: {},
   status: 'planned', format: 'physical', owned: true, favorite: false,
   rating: null, currentPage: '',
-  // Per-item "open in" override; empty type means inherit the global default.
   openType: '', openCustomUrl: '', openTitleFormat: 'raw',
 })
 const form = reactive(blank())
 
-// Destinations for this book's medium. A plugin medium whose match rule fires
-// (e.g. a manga carrying an AniList id) wins over the format medium; Shelf stays
-// agnostic — the rule lives in the plugin. See utils/openTarget.js.
 const openMedium = computed(() => mediumOfEntry({ identifiers: form.identifiers, format: form.format }))
 const openOptions = computed(() => OPEN_OPTIONS[openMedium.value] || [])
 
@@ -84,18 +75,14 @@ function reset() {
 
 watch(() => props.show, (v) => { if (v) reset() }, { immediate: true })
 watch(() => props.resetKey, () => { if (props.show) reset() })
-// Reseed if the parent swaps which entry is being edited without closing first.
 watch(() => props.initial, () => { if (props.show) reset() })
 
-// If the format changes to one that doesn't offer the picked destination, drop
-// the override so the select never shows a value it can't represent.
 watch(() => form.format, () => {
   if (form.openType && !openOptions.value.some((o) => o.type === form.openType)) {
     form.openType = ''
   }
 })
 
-// ── Metadata search ──────────────────────────────────────────────────────────
 function onTitleInput() {
   clearTimeout(searchTimer)
   const q = form.title.trim()
@@ -114,7 +101,7 @@ function onTitleInput() {
   }, 350)
 }
 
-// Delay the close so a click on a result registers before blur hides the list.
+// Delay so a click on a result registers before blur hides the list.
 function closeDropdown() { setTimeout(() => { showDropdown.value = false }, 150) }
 
 function pickResult(r) {
@@ -133,7 +120,6 @@ function pickResult(r) {
   if (r.coverUrl) form.coverUrl = r.coverUrl
 }
 
-// ── Cover ────────────────────────────────────────────────────────────────────
 function triggerUpload() { fileInput.value?.click() }
 async function onFile(e) {
   const file = e.target.files?.[0]
@@ -147,7 +133,6 @@ function applyUrl() {
   urlDraft.value = ''
 }
 
-// ── Submit ───────────────────────────────────────────────────────────────────
 const splitList = (s) => s.split(',').map((x) => x.trim()).filter(Boolean)
 const numOrNull = (v) => (v === '' || v == null ? null : Number(v))
 
@@ -175,7 +160,6 @@ function submit() {
     favorite: !!form.favorite,
     rating: form.rating || null,
     currentPage: numOrNull(form.currentPage) || 0,
-    // null tells the entry to inherit the per-kind global default.
     openTarget: form.openType
       ? {
           type: form.openType,
@@ -202,7 +186,6 @@ function submit() {
     @cancel="emit('close')"
   >
     <div class="flex flex-col gap-5 sm:flex-row sm:gap-6 items-start">
-      <!-- Cover -->
       <div class="w-36 sm:w-44 shrink-0 mx-auto sm:mx-0 flex flex-col gap-2.5">
         <div class="relative rounded-lg overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-500 transition-colors cursor-pointer" @click="!form.coverUrl && triggerUpload()">
           <CoverImage :src="form.coverUrl" :alt="form.title" />
@@ -225,9 +208,7 @@ function submit() {
         <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFile" />
       </div>
 
-      <!-- Fields -->
       <div class="flex-1 min-w-0 flex flex-col gap-4">
-        <!-- Title with typeahead -->
         <div class="flex flex-col gap-1.5">
           <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.title') }}</label>
           <div class="relative">
@@ -247,7 +228,6 @@ function submit() {
           </div>
         </div>
 
-        <!-- Subtitle + Authors -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.subtitle') }}</label>
@@ -259,7 +239,6 @@ function submit() {
           </div>
         </div>
 
-        <!-- Series + position + genres -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1.5 sm:col-span-1">
             <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.series') }}</label>
@@ -275,7 +254,6 @@ function submit() {
           </div>
         </div>
 
-        <!-- Publisher, published, pages, language, isbn -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1.5">
             <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.publisher') }}</label>
@@ -299,13 +277,11 @@ function submit() {
           </div>
         </div>
 
-        <!-- Description -->
         <div class="flex flex-col gap-1.5">
           <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.description') }}</label>
           <textarea v-model="form.description" rows="3" class="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
         </div>
 
-        <!-- Your library section -->
         <div class="border-t border-black/5 dark:border-white/10 pt-4 flex flex-col gap-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="flex flex-col gap-1.5">
@@ -322,7 +298,6 @@ function submit() {
             </div>
           </div>
 
-          <!-- Open in (overrides the per-medium global default). -->
           <div v-if="openOptions.length" class="flex flex-col gap-1.5">
             <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.form.openIn') }}</label>
             <select v-model="form.openType" class="cursor-pointer bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">

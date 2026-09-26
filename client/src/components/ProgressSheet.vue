@@ -5,9 +5,6 @@ import { useI18n } from '@core/useI18n.js'
 import { logSession } from '@/api/shelf.js'
 import { useLibrary } from '@/composables/useLibrary.js'
 
-// A small, fast "where are you now?" sheet. Enter the page you've reached (and
-// optionally how long you read) — it logs a ReadingSession and advances the
-// book. Deliberately minimal: two fields and a live progress preview.
 const props = defineProps({
   show: { type: Boolean, default: false },
   entry: { type: Object, default: null },
@@ -30,7 +27,6 @@ const previewPct = computed(() => {
   return Math.max(0, Math.min(100, Math.round((p / total.value) * 100)))
 })
 
-// Seed with the current page each time it opens, or if the entry swaps while open.
 function seed() {
   page.value = props.entry?.currentPage || ''
   minutes.value = ''
@@ -78,7 +74,6 @@ async function save() {
     @cancel="emit('close')"
   >
     <div class="flex flex-col gap-4">
-      <!-- Current page -->
       <div class="flex flex-col gap-1.5">
         <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.progress.currentPage') }}</label>
         <div class="flex items-center gap-2">
@@ -95,7 +90,6 @@ async function save() {
         </div>
       </div>
 
-      <!-- Live preview bar -->
       <div v-if="previewPct !== null" class="flex flex-col gap-1.5">
         <div class="flex justify-between text-xs text-slate-400 dark:text-slate-500">
           <span>{{ t('shelf.progress.preview') }}</span>
@@ -106,7 +100,6 @@ async function save() {
         </div>
       </div>
 
-      <!-- Optional minutes -->
       <div class="flex flex-col gap-1.5">
         <label class="text-sm text-slate-500 dark:text-slate-400">{{ t('shelf.progress.minutes') }} <span class="text-slate-400 dark:text-slate-600">· {{ t('shelf.progress.optional') }}</span></label>
         <input
